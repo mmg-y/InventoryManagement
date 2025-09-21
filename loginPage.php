@@ -14,7 +14,6 @@
 <body>
 
     <div class="container">
-        <!-- Left Side -->
         <div class="left">
             <div class="overlay"></div>
             <div class="top-text">IMS</div>
@@ -24,32 +23,64 @@
             </div>
         </div>
 
-        <!-- Right Side -->
-        <div class="right">
+        <div class="right" id="rightPanel">
             <div class="logo">Cogie</div>
-            <h1>Welcome Back</h1>
-            <p>Enter your email and password to access your account</p>
+            <div class="form-container" id="signin">
+                <h1>Welcome Back</h1>
+                <p>Enter your email and password to access your account</p>
+                <form>
+                    <div class="form-group"><input type="email" placeholder="Enter your email" required></div>
+                    <div class="form-group"><input type="password" placeholder="Enter your password" required></div>
 
-            <form>
-                <div class="form-group">
-                    <input type="email" placeholder="Enter your email" required>
-                </div>
-                <div class="form-group">
-                    <input type="password" placeholder="Enter your password" required>
-                </div>
+                    <div class="options">
+                        <label><input type="checkbox"> Remember me</label>
+                        <a href="#">Forgot Password</a>
+                    </div>
 
-                <div class="options">
-                    <label><input type="checkbox"> Remember me</label>
-                    <a href="#">Forgot Password</a>
-                </div>
+                    <button class="btn btn-primary" type="submit">Sign In</button>
+                    <div class="toggle-link">Don’t have an account? <a id="showSignup">Sign Up</a></div>
+                </form>
+            </div>
 
-                <button class="btn btn-primary" type="submit">Sign In</button>
-                <div class="signup">
-                    Don’t have an account? <a href="#">Sign Up</a>
-                </div>
-            </form>
+            <div class="form-container" id="signup">
+                <h1>Create Account</h1>
+                <p>Fill in the details below to create your account</p>
+                <form>
+                    <div class="input-group">
+                        <div class="form-group"><input type="text" placeholder="Last Name" required></div>
+                        <div class="form-group"><input type="text" placeholder="First Name" required></div>
+                    </div>
+                    <div class="input-group">
+                        <div class="form-group"><input type="text" placeholder="Contact" required></div>
+                        <div class="form-group"><input type="email" placeholder="Email" required></div>
+                    </div>
+                    <div class="form-group"><input type="text" placeholder="Username" required></div>
+                    <div class="input-group">
+                        <div class="form-group"><input type="password" placeholder="Password" required></div>
+                        <div class="form-group">
+                            <select required>
+                                <option value="">Select Type</option>
+                                <option value="admin">Admin</option>
+                                <option value="staff">Staff</option>
+                                <option value="bodegero">Bodegero</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Sign Up</button>
+                    <div class="toggle-link">Already have an account? <a id="showSignin">Sign In</a></div>
+                </form>
+            </div>
         </div>
     </div>
+
+    <script>
+        const rightPanel = document.getElementById('rightPanel');
+        const showSignup = document.getElementById('showSignup');
+        const showSignin = document.getElementById('showSignin');
+
+        showSignup.addEventListener('click', () => rightPanel.classList.add('active'));
+        showSignin.addEventListener('click', () => rightPanel.classList.remove('active'));
+    </script>
 </body>
 
 </html>
