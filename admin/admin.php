@@ -1,3 +1,12 @@
+<?php
+session_start();
+if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
+    header("Location: index.php");
+    exit;
+}
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,7 +14,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IMS - Admin Page</title>
-    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="../css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 </head>
@@ -22,29 +31,41 @@
                 <li><i class="fa-solid fa-truck"></i> Supplier Purchases</li>
                 <li><i class="fa-solid fa-receipt"></i> Sales Record</li>
                 <li><i class="fa-solid fa-chart-pie"></i> Analytics & Reports</li>
-                <li><i class="fa-solid fa-chart-trend"></i> Sales Prediction</li>
+                <li><i class="fa-solid fa-magnifying-glass-chart"></i> Sales Prediction</li>
             </ul>
         </div>
 
-        <!-- Settings at bottom -->
         <ul class="menu bottom-menu">
             <li><i class="fa-solid fa-gear"></i> Settings</li>
         </ul>
     </aside>
 
     <main class="main">
-
+        <h1 class="page-title">Admin Dashboard</h1>
         <div class="topbar">
             <div class="search">
                 <input type="text" placeholder="Search...">
             </div>
             <div class="topbar-right">
-                <div class="icon">🔔</div>
+                <button class="icon-btn">
+                    <i class="fa-solid fa-bell" style="color: #102c57;"></i>
+                    <span class="badge">3</span>
+                </button>
                 <div class="icon">⚙</div>
-                <div class="profile">
-                    <div class="profile-img"></div>
-                    <span>Admin</span>
+                <div class="profile" id="profileMenu">
+                    <img src="https://via.placeholder.com/40" alt="Profile" class="profile-img">
+                    <span>
+                        <h1>Welcome, <?= $_SESSION['username']; ?>!</h1>
+                    </span>
+                    <i class="fa-solid fa-chevron-down chevron"></i>
+
+                    <div class="dropdown" id="dropdownMenu">
+                        <a href="#">Profile</a>
+                        <a href="../logout.php">Logout</a>
+                    </div>
                 </div>
+
+
             </div>
         </div>
 
@@ -72,13 +93,11 @@
             </div>
         </div>
 
-        <!-- Charts -->
         <div class="charts">
             <div class="chart">[ Sales Trend Chart Placeholder ]</div>
             <div class="chart">[ Inventory Analytics Placeholder ]</div>
         </div>
 
-        <!-- Tables -->
         <div class="tables">
             <div class="table">
                 <h3>Recent Purchases</h3>
@@ -122,6 +141,21 @@
             </div>
         </div>
     </main>
+
+    <script>
+        const profile = document.getElementById("profileMenu");
+
+        profile.addEventListener("click", () => {
+            profile.classList.toggle("active");
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!profile.contains(e.target)) {
+                profile.classList.remove("active");
+            }
+        });
+    </script>
+
 
 </body>
 

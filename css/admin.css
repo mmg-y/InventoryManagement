@@ -7,6 +7,7 @@
     --whiteOne: #f6f7fb;
     --whiteTwo: #eee;
     --whiteThree: #ccc;
+    --whiteFour: #ddd;
     --darkGray: #333;
     --lightGray: #555;
 }
@@ -25,7 +26,6 @@ body {
     color: var(--darkGray);
 }
 
-/* Sidebar */
 .sidebar {
     width: 260px;
     height: 100vh;
@@ -70,14 +70,18 @@ body {
     /* border-radius: 20px; */
 }
 
-/* Main content */
 .main {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
 }
 
-/* Topbar */
+.page-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
 .topbar {
     display: flex;
     justify-content: space-between;
@@ -92,7 +96,7 @@ body {
 .search input {
     padding: 8px 12px;
     border: 1px solid var(--whiteThree);
-    border-radius: 6px;
+    border-radius: 20px;
     width: 250px;
 }
 
@@ -114,11 +118,31 @@ body {
     cursor: pointer;
 }
 
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    position: relative;
+}
+
+.icon-btn .badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    background: red;
+    color: var(--white);
+    font-size: 12px;
+    border-radius: 50%;
+    padding: 2px 6px;
+}
+
 .profile {
     display: flex;
     align-items: center;
     gap: 10px;
     cursor: pointer;
+    position: relative;
 }
 
 .profile-img {
@@ -128,7 +152,40 @@ body {
     background: var(--whiteThree);
 }
 
-/* Cards row */
+.profile span h1{
+    font-size: 13px;
+    margin: 0;
+}
+
+.dropdown {
+    position: absolute;
+    top: 110%;
+    right: 0;
+    background: var(--white);
+    border: 1px solid var(--whiteFour);
+    border-radius: 8px;
+    display: none;
+    flex-direction: column;
+    min-width: 150px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.dropdown a {
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+}
+
+.dropdown a:hover {
+    background: #f6f6f6;
+}
+
+.profile.active .dropdown {
+    display: flex;
+}
+
 .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -154,7 +211,6 @@ body {
     color: var(--black);
 }
 
-/* Placeholder charts/tables */
 .charts,
 .tables {
     display: grid;

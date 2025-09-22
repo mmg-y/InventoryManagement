@@ -1,3 +1,11 @@
+<?php
+session_start();
+if (!isset($_SESSION['username']) || $_SESSION['type'] !== "staff") {
+    header("Location: index.php");
+    exit;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,7 +13,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IMS - Staff Dashboard</title>
-    <link rel="stylesheet" href="css/staff.css">
+    <link rel="stylesheet" href="../css/staff.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 </head>
@@ -15,40 +23,47 @@
     <aside class="sidebar">
         <h2>Staff</h2>
         <ul class="menu">
-            <li class="active">Dashboard</li>
-            <li>POS</li>
-            <li>Manage Staff Account</li>
-            <li>Products & Inventory (View Only)</li>
-            <li>Sales Record</li>
-            <li>Analytics & Reports</li>
-            <li>Notifications</li>
+            <li class="active"><i class="fa-solid fa-chart-line"></i> Dashboard</li>
+            <li><i class="fa-solid fa-cart-plus"></i>POS</li>
+            <li><i class="fa-solid fa-users"></i>Manage Staff Account</li>
+            <li><i class="fa-solid fa-truck-ramp-box"></i>Products & Inventory</li>
+            <li><i class="fa-solid fa-clipboard"></i>Sales Record</li>
+            <li><i class="fa-solid fa-chart-pie"></i>Analytics & Reports</li>
         </ul>
         <div class="settings">
-            <li>System Settings</li>
+            <li><i class="fa-solid fa-gear"></i> Settings</li>
         </div>
     </aside>
 
     <main class="main-content">
+        <h1 class="page-title">Staff Dashboard</h1>
+
         <header class="topbar">
-            <h1>Staff Dashboard</h1>
             <div class="search-bar">
                 <input type="text" placeholder="Search...">
             </div>
 
             <div class="topbar-actions">
                 <button class="icon-btn">
-                    🔔
+                    <i class="fa-solid fa-bell" style="color: #102c57;"></i>
                     <span class="badge">3</span>
                 </button>
-                <div class="profile">
-                    <img src="https://via.placeholder.com/40" alt="Profile">
-                    <span>John Doe</span>
+                <div class="profile" id="profileMenu">
+                    <img src="https://via.placeholder.com/40" alt="Profile" class="profile-img">
+                    <span>
+                        <h1>Welcome, <?= $_SESSION['username']; ?>!</h1>
+                    </span>
+                    <i class="fa-solid fa-chevron-down chevron"></i>
+
+                    <div class="dropdown" id="dropdownMenu">
+                        <a href="#">Profile</a>
+                        <a href="../logout.php">Logout</a>
+                    </div>
                 </div>
             </div>
         </header>
 
         <section class="dashboard">
-            <!-- Quick Stats -->
             <div class="stats">
                 <div class="card">
                     <h3>Today’s Sales</h3>
@@ -68,13 +83,11 @@
                 </div>
             </div>
 
-            <!-- Sales Chart -->
             <div class="chart card">
                 <h3>Weekly Sales (Personal)</h3>
                 <canvas id="salesChart"></canvas>
             </div>
 
-            <!-- Recent Transactions -->
             <div class="card">
                 <h3>Recent Transactions</h3>
                 <table>
@@ -100,7 +113,7 @@
                 </table>
             </div>
 
-            <!-- Top Products -->
+
             <div class="card">
                 <h3>Top Selling Products</h3>
                 <ul>
@@ -110,7 +123,6 @@
                 </ul>
             </div>
 
-            <!-- Notifications -->
             <div class="card">
                 <h3>Notifications</h3>
                 <ul>
@@ -122,7 +134,7 @@
         </section>
     </main>
 
-    <!-- Chart.js for sales chart -->
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const ctx = document.getElementById('salesChart');
@@ -137,6 +149,21 @@
             }
         });
     </script>
+
+    <script>
+        const profile = document.getElementById("profileMenu");
+
+        profile.addEventListener("click", () => {
+            profile.classList.toggle("active");
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!profile.contains(e.target)) {
+                profile.classList.remove("active");
+            }
+        });
+    </script>
+
 </body>
 
 </html>
