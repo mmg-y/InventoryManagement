@@ -33,7 +33,8 @@ table {
     border-collapse: collapse;
 }
 
-th,td {
+th,
+td {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid var(--whiteOne);
@@ -63,10 +64,10 @@ th a:hover {
 
 .actions-bar {
     display: flex;
-    align-items: center; 
-    justify-content: space-between; 
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 15px;
-    gap: 10px; 
+    gap: 10px;
 }
 
 .search-form {
@@ -147,13 +148,13 @@ th a:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: none;    
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
     z-index: 1000;
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 20px;           
+    padding: 20px;
     box-sizing: border-box;
 }
 

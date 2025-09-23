@@ -26,7 +26,6 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "staff") {
         <ul class="menu">
             <li class="active"><i class="fa-solid fa-chart-line"></i> Dashboard</li>
             <li><i class="fa-solid fa-cart-plus"></i>POS</li>
-            <li><i class="fa-solid fa-users"></i>Manage Staff Account</li>
             <li><i class="fa-solid fa-truck-ramp-box"></i>Products & Inventory</li>
             <li><i class="fa-solid fa-clipboard"></i>Sales Record</li>
             <li><i class="fa-solid fa-chart-pie"></i>Analytics & Reports</li>
@@ -57,7 +56,7 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "staff") {
                     <i class="fa-solid fa-chevron-down chevron"></i>
 
                     <div class="dropdown" id="dropdownMenu">
-                        <a href="#">Profile</a>
+                        <a href="#">Manage Profile</a>
                         <a href="../logout.php">Logout</a>
                     </div>
                 </div>

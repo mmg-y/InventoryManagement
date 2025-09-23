@@ -43,6 +43,34 @@ body {
     color: var(--black);
 }
 
+.sidebar .menu li {
+    list-style: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.sidebar .menu li a {
+    text-decoration: none;
+    color: var(--darkGray); 
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.sidebar .menu li:hover,
+.sidebar .menu li.active {
+    background: var(--blue); 
+}
+
+.sidebar .menu li:hover a,
+.sidebar .menu li.active a {
+    color: var(--white); 
+}
+
+
+
 .menu {
     list-style: none;
     padding: 0;
@@ -64,11 +92,11 @@ body {
     font-size: 18px;
 }
 
-.menu li.active,
+/* .menu li.active,
 .menu li:hover {
     background: var(--blue);
     color: var(--white);
-}
+} */
 
 .main {
     flex: 1;
@@ -152,7 +180,7 @@ body {
     background: var(--whiteThree);
 }
 
-.profile span h1{
+.profile span h1 {
     font-size: 13px;
     margin: 0;
 }

@@ -19,30 +19,43 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
 
 <body>
 
-    <!-- Sidebar -->
     <aside class="sidebar">
         <div>
             <h2>Admin</h2>
             <ul class="menu">
-                <li><a href="?page=dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
-                <li><a href="?page=user_roles"><i class="fa-solid fa-user-shield"></i> User Roles</a></li>
-                <li><a href="?page=product_inventory"><i class="fa-solid fa-boxes-stacked"></i> Products & Inventory</a></li>
-                <li><a href="?page=supplier_purchases"><i class="fa-solid fa-truck"></i> Supplier Purchases</a></li>
-                <li><a href="?page=sales_record"><i class="fa-solid fa-receipt"></i> Sales Record</a></li>
-                <li><a href="?page=analytics_report"><i class="fa-solid fa-chart-pie"></i> Analytics & Reports</a></li>
-                <li><a href="?page=sales_prediction"><i class="fa-solid fa-magnifying-glass-chart"></i> Sales Prediction</a></li>
+                <li class="<?= (!isset($_GET['page']) || $_GET['page'] === 'dashboard') ? 'active' : '' ?>">
+                    <a href="?page=dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+                </li>
+                <li class="<?= ($_GET['page'] ?? '') === 'user_roles' ? 'active' : '' ?>">
+                    <a href="?page=user_roles"><i class="fa-solid fa-user-shield"></i> User Roles</a>
+                </li>
+                <li class="<?= ($_GET['page'] ?? '') === 'product_inventory' ? 'active' : '' ?>">
+                    <a href="?page=product_inventory"><i class="fa-solid fa-boxes-stacked"></i> Products & Inventory</a>
+                </li>
+                <li class="<?= ($_GET['page'] ?? '') === 'supplier_purchases' ? 'active' : '' ?>">
+                    <a href="?page=supplier_purchases"><i class="fa-solid fa-truck"></i> Supplier Purchases</a>
+                </li>
+                <li class="<?= ($_GET['page'] ?? '') === 'sales_record' ? 'active' : '' ?>">
+                    <a href="?page=sales_record"><i class="fa-solid fa-receipt"></i> Sales Record</a>
+                </li>
+                <li class="<?= ($_GET['page'] ?? '') === 'analytics_report' ? 'active' : '' ?>">
+                    <a href="?page=analytics_report"><i class="fa-solid fa-chart-pie"></i> Analytics & Reports</a>
+                </li>
+                <li class="<?= ($_GET['page'] ?? '') === 'sales_prediction' ? 'active' : '' ?>">
+                    <a href="?page=sales_prediction"><i class="fa-solid fa-magnifying-glass-chart"></i> Sales Prediction</a>
+                </li>
             </ul>
         </div>
 
         <ul class="menu bottom-menu">
-            <li><a href="?page=settings"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li class="<?= ($_GET['page'] ?? '') === 'settings' ? 'active' : '' ?>">
+                <a href="?page=settings"><i class="fa-solid fa-gear"></i> Settings</a>
+            </li>
         </ul>
     </aside>
 
-    <!-- Main -->
     <main class="main">
 
-        <!-- Topbar -->
         <div class="topbar">
             <div class="search">
                 <input type="text" placeholder="Search...">
@@ -55,7 +68,9 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
                 <div class="icon">⚙</div>
                 <div class="profile" id="profileMenu">
                     <img src="https://via.placeholder.com/40" alt="Profile" class="profile-img">
-                    <span>Welcome, <?= $_SESSION['username']; ?>!</span>
+                    <span>
+                        <h1>Welcome, <?= $_SESSION['username']; ?>!</h1>
+                    </span>
                     <i class="fa-solid fa-chevron-down chevron"></i>
 
                     <div class="dropdown" id="dropdownMenu">
@@ -66,15 +81,14 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
             </div>
         </div>
 
-        <!-- Page Content -->
         <div class="page-content">
             <?php
             if (isset($_GET['page'])) {
                 $page = $_GET['page'];
                 switch ($page) {
-                    case 'user_roles':
-                        include 'user_roles.php';
-                        break;
+                    // case 'user_roles':
+                    //     include 'user_roles.php';
+                    //     break;
                     case 'product_inventory':
                         include 'product_inventory.php';
                         break;
@@ -95,11 +109,11 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
                         break;
                     case 'dashboard':
                     default:
-                        include 'dashboard.php'; // Dashboard is separate file
+                        include 'dashboard.php';
                         break;
                 }
             } else {
-                include 'dashboard.php'; // Default view
+                include 'dashboard.php';
             }
             ?>
         </div>
