@@ -23,7 +23,6 @@ body {
   display: flex;
 }
 
-/* Sidebar */
 .sidebar {
   width: 260px;
   background: var(--white);
@@ -93,7 +92,7 @@ body {
   color: var(--white);
 }
 
-/* Topbar */
+
 .page-title {
   font-size: 1.8rem;
   font-weight: bold;
@@ -124,7 +123,7 @@ body {
 
 .search-bar input {
     padding: 8px 12px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--whiteThree);
     border-radius: 20px;
     outline: none;
     width: 250px;
@@ -149,7 +148,7 @@ body {
     top: -5px;
     right: -8px;
     background: red;
-    color: #fff;
+    color: var(--white);
     font-size: 12px;
     border-radius: 50%;
     padding: 2px 6px;
@@ -192,7 +191,7 @@ body {
 .dropdown a {
   padding: 10px 15px;
   text-decoration: none;
-  color: #333;
+  color: var(--darkGray);
   font-size: 14px;
 }
 
@@ -223,9 +222,8 @@ body {
   gap: 20px;
 }
 
-/* Cards */
 .card {
-  background: #fff;
+  background: var(--white);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);

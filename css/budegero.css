@@ -24,7 +24,6 @@ body {
     display: flex;
 }
 
-/* Layout */
 .container {
     display: flex;
     min-height: 100vh;
@@ -218,7 +217,6 @@ body {
     display: flex;
 }
 
-/* Dashboard content */
 .content {
     padding: 20px;
 }
