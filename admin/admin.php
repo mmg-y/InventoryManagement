@@ -21,7 +21,10 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
 
     <aside class="sidebar">
         <div>
-            <h2>Admin</h2>
+            <div class="logo">
+                <img src="../images/logo-b.png" alt="Logo">
+                <span>IMS</span>
+            </div>
             <ul class="menu">
                 <li class="<?= (!isset($_GET['page']) || $_GET['page'] === 'dashboard') ? 'active' : '' ?>">
                     <a href="?page=dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
@@ -53,6 +56,7 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
             </li>
         </ul>
     </aside>
+
 
     <main class="main">
 

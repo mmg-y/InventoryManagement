@@ -92,7 +92,7 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IMS - Login Page</title>
     <link rel="icon" href="" type="images/png">
-    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 </head>
@@ -110,7 +110,10 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
         </div>
 
         <div class="right" id="rightPanel">
-            <div class="logo">IMS</div>
+            <div class="logo">
+                <img src="images/logo-b.png" alt="Logo">
+                <span>IMS</span>
+            </div>
             <div class="form-container" id="signin">
                 <h1>Welcome Back</h1>
                 <p>Enter your email and password to access your account</p>
