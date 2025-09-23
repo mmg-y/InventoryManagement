@@ -56,18 +56,18 @@ body {
     cursor: pointer;
     color: var(--lightGray);
     transition: background 0.3s;
+    font-size: 15px;
 }
 
 .menu li i {
-    margin-right: 15px;
+    margin-right: 20px;
     font-size: 18px;
 }
 
-.menu li:hover,
-.menu li.active {
+.menu li.active,
+.menu li:hover {
     background: var(--blue);
     color: var(--white);
-    /* border-radius: 20px; */
 }
 
 .main {

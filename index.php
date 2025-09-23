@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "config.php"; // database connection
+include "config.php";
 
 $message = "";
 
@@ -14,7 +14,7 @@ if (isset($_POST['action']) && $_POST['action'] === "signup") {
     $type       = trim($_POST['type'] ?? '');
 
     if ($first_name && $last_name && $contact && $email && $username && $password && $type) {
-        // check duplicate user/email
+
         $stmt = $conn->prepare("SELECT id FROM user WHERE username=? OR email=? LIMIT 1");
         $stmt->bind_param("ss", $username, $email);
         $stmt->execute();
@@ -43,7 +43,6 @@ if (isset($_POST['action']) && $_POST['action'] === "signup") {
     }
 }
 
-// ========== LOGIN ==========
 if (isset($_POST['action']) && $_POST['action'] === "login") {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -63,8 +62,8 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
                     header("Location: admin/admin.php");
                 } elseif ($row['type'] === "staff") {
                     header("Location: staff/staff.php");
-                } elseif ($row['type'] === "budegero") {
-                    header("Location: budegero.php");
+                } elseif ($row['type'] === "bodegero") {
+                    header("Location: budegero/budegero.php");
                 } else {
                     $message = "❌ Unknown user type!";
                 }

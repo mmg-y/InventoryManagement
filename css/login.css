@@ -124,13 +124,15 @@ body {
 
 .form-container h1 {
     font-size: 28px;
-     margin-bottom: 10px;
+    margin-bottom: 10px;
+    text-align: center;
 }
 
 .form-container p {
     font-size: 14px;
     color: var(--gray);
     margin-bottom: 20px;
+    text-align: center;
 }
 
 .input-group {

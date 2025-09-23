@@ -14,6 +14,7 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "staff") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IMS - Staff Dashboard</title>
     <link rel="stylesheet" href="../css/staff.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 </head>
@@ -134,8 +135,6 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "staff") {
         </section>
     </main>
 
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const ctx = document.getElementById('salesChart');
         new Chart(ctx, {
