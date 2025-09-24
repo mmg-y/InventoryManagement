@@ -55,8 +55,15 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
 
         if ($row = $result->fetch_assoc()) {
             if (password_verify($password, $row['password'])) {
-                $_SESSION['username'] = $row['username'];
-                $_SESSION['type']     = $row['type'];
+                $_SESSION['id']          = $row['id'];
+                $_SESSION['username']    = $row['username'];
+                $_SESSION['first_name']  = $row['first_name'];
+                $_SESSION['last_name']   = $row['last_name'];
+                $_SESSION['contact']     = $row['contact'];
+                $_SESSION['email']       = $row['email'];
+                $_SESSION['type']        = $row['type'];
+                $_SESSION['profile_pic'] = !empty($row['profile_pic']) ? $row['profile_pic'] : 'uploads/default.png';
+
 
                 if ($row['type'] === "admin") {
                     header("Location: admin/admin.php");

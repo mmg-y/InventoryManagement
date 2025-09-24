@@ -4,6 +4,13 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
     header("Location: index.php");
     exit;
 }
+
+// generate correct relative src from admin/ page
+$profile_src = '../uploads/default.png';
+if (!empty($_SESSION['profile_pic'])) {
+    // stored as 'uploads/filename.ext' in DB/session
+    $profile_src = '../' . ltrim($_SESSION['profile_pic'], '/');
+}
 ?>
 
 <!DOCTYPE html>
@@ -71,14 +78,14 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
                 </button>
                 <div class="icon">⚙</div>
                 <div class="profile" id="profileMenu">
-                    <img src="https://via.placeholder.com/40" alt="Profile" class="profile-img">
+                    <img src="<?= htmlspecialchars($profile_src); ?>" alt="Profile" class="profile-img">
                     <span>
                         <h1>Welcome, <?= $_SESSION['username']; ?>!</h1>
                     </span>
                     <i class="fa-solid fa-chevron-down chevron"></i>
 
                     <div class="dropdown" id="dropdownMenu">
-                        <a href="#">Profile</a>
+                        <a href="#profile">Profile</a>
                         <a href="../logout.php">Logout</a>
                     </div>
                 </div>
@@ -90,9 +97,9 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
             if (isset($_GET['page'])) {
                 $page = $_GET['page'];
                 switch ($page) {
-                    // case 'user_roles':
-                    //     include 'user_roles.php';
-                    //     break;
+                    case 'user_roles':
+                        include 'user_roles.php';
+                        break;
                     case 'product_inventory':
                         include 'product_inventory.php';
                         break;
@@ -135,6 +142,108 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
             }
         });
     </script>
+
+    <!-- Change Profile Modal -->
+<div id="profileModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+        <span class="close-btn" id="closeProfile" aria-label="Close">&times;</span>
+        <h2>Edit Profile</h2>
+
+        <!-- show messages -->
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+        <?php endif; ?>
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert error"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+        <?php endif; ?>
+
+        <form action="update_profile.php" method="POST" enctype="multipart/form-data" id="profileForm">
+            <div class="profile-pic-wrapper">
+                <?php
+                    $modal_pic = '../uploads/default.png';
+                    if (!empty($_SESSION['profile_pic'])) $modal_pic = '../' . ltrim($_SESSION['profile_pic'], '/');
+                ?>
+                <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Profile" id="profilePreview">
+                <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
+            </div>
+
+            <label>First Name</label>
+            <input type="text" name="first_name" value="<?= htmlspecialchars($_SESSION['first_name'] ?? ''); ?>" required>
+
+            <label>Last Name</label>
+            <input type="text" name="last_name" value="<?= htmlspecialchars($_SESSION['last_name'] ?? ''); ?>" required>
+
+            <label>Contact</label>
+            <input type="text" name="contact" value="<?= htmlspecialchars($_SESSION['contact'] ?? ''); ?>" required>
+
+            <label>Email</label>
+            <input type="email" name="email" value="<?= htmlspecialchars($_SESSION['email'] ?? ''); ?>" required>
+
+            <label>Username</label>
+            <input type="text" name="username" value="<?= htmlspecialchars($_SESSION['username'] ?? ''); ?>" required>
+
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Enter new password">
+
+            <label>Confirm Password</label>
+            <input type="password" name="confirm_password" placeholder="Confirm new password">
+
+            <button type="submit" class="save-btn">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+
+<script>
+    const profileLink = document.querySelector('#dropdownMenu a[href="#profile"]');
+    const profileModal = document.getElementById('profileModal');
+    const closeProfile = document.getElementById('closeProfile');
+    const profilePicInput = document.getElementById('profilePicInput');
+    const profilePreview = document.getElementById('profilePreview');
+
+    if (profileLink) {
+        profileLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            profileModal.style.display = 'flex';
+            profileModal.setAttribute('aria-hidden', 'false');
+        });
+    }
+
+    closeProfile.addEventListener('click', () => {
+        profileModal.style.display = 'none';
+        profileModal.setAttribute('aria-hidden', 'true');
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target === profileModal) {
+            profileModal.style.display = 'none';
+            profileModal.setAttribute('aria-hidden', 'true');
+        }
+    });
+
+    // Live preview profile picture
+    if (profilePicInput && profilePreview) {
+        profilePicInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                profilePreview.src = URL.createObjectURL(file);
+            }
+        });
+    }
+
+    // auto-open modal if server asked (after submit)
+    <?php if (!empty($_SESSION['open_profile_modal'])): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            const pm = document.getElementById('profileModal');
+            if (pm) {
+                pm.style.display = 'flex';
+                pm.setAttribute('aria-hidden', 'false');
+            }
+        });
+    <?php unset($_SESSION['open_profile_modal']); endif; ?>
+</script>
+
+
 
 </body>
 
