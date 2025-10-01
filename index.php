@@ -89,8 +89,6 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
 ?>
 
 
-
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -125,6 +123,11 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
                 <h1>Welcome Back</h1>
                 <p>Enter your email and password to access your account</p>
 
+                <?php if (!empty($message) && $_POST['action'] === 'login'): ?>
+                    <div class="message"><?= htmlspecialchars($message) ?></div>
+                <?php endif; ?>
+
+
                 <form action="index.php" method="POST">
                     <input type="hidden" name="action" value="login">
                     <div class="form-group">
@@ -147,6 +150,12 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
             <div class="form-container" id="signup">
                 <h1>Create Account</h1>
                 <p>Fill in the details below to create your account</p>
+
+                <?php if (!empty($message) && $_POST['action'] === 'signup'): ?>
+                    <div class="message"><?= htmlspecialchars($message) ?></div>
+                <?php endif; ?>
+
+
                 <form action="index.php" method="POST">
                     <input type="hidden" name="action" value="signup">
 

@@ -23,6 +23,16 @@ body {
     height: 100vh;
 }
 
+.message {
+    margin: 15px 0;
+    padding: 10px 15px;
+    background-color: #f9f9f9;
+    border-left: 4px solid var(--black);
+    border-radius: 5px;
+    color: #333;
+    font-size: 0.95em;
+}
+
 .container {
     display: flex;
     width: 940px;
@@ -90,7 +100,7 @@ body {
 }
 
 #rightPanel .logo img {
-    width: 45px;   /* adjust size */
+    width: 45px;  
     height: auto;
     display: block;
 }
@@ -181,6 +191,13 @@ body {
 .btn-primary {
     background: var(--black);
     color: var(--white);
+}
+
+.btn-primary:hover {
+    background: var(--white);
+    color: var(--black);
+    box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+        inset -6px -6px 12px rgba(255, 255, 255, 0.7);
 }
 
 .toggle-link {
