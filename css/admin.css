@@ -63,7 +63,8 @@ body {
 
 .sidebar .menu li {
     list-style: none;
-    padding: 12px 20px;
+    /* padding: 12px 20px; */
+    padding: 0;
     cursor: pointer;
     transition: all 0.3s ease;
 }
@@ -73,13 +74,22 @@ body {
     color: var(--darkGray); 
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     font-weight: 500;
+    padding: 12px 20px;        
+    width: 100%;              
+    box-sizing: border-box;
+}
+
+.sidebar .menu li a i {
+    font-size: 18px;
+    min-width: 20px;           
+    text-align: center;
 }
 
 .sidebar .menu li:hover,
 .sidebar .menu li.active {
-    background: var(--blue); 
+    background: var(--black); 
 }
 
 .sidebar .menu li:hover a,

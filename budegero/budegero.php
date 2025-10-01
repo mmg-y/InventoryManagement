@@ -45,11 +45,13 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
                 </button>
                 <div class="profile" id="profileMenu">
                     <?php
-                        $pic = '../uploads/default.png';
-                        if (!empty($_SESSION['profile_pic'])) $pic = '../' . ltrim($_SESSION['profile_pic'], '/');
+                    $pic = '../uploads/default.png';
+                    if (!empty($_SESSION['profile_pic'])) $pic = '../' . ltrim($_SESSION['profile_pic'], '/');
                     ?>
                     <img src="<?= htmlspecialchars($pic); ?>" alt="Profile" class="profile-img" id="profileImage">
-                    <span><h1>Welcome, <?= htmlspecialchars($_SESSION['username']); ?>!</h1></span>
+                    <span>
+                        <h1>Welcome, <?= htmlspecialchars($_SESSION['username']); ?>!</h1>
+                    </span>
                     <i class="fa-solid fa-chevron-down chevron"></i>
 
                     <div class="dropdown" id="dropdownMenu">
@@ -62,26 +64,60 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
 
         <section class="content">
             <div class="cards">
-                <div class="card"><h3>Total Products</h3><p>120</p></div>
-                <div class="card"><h3>Inventory Value</h3><p>₱250,000</p></div>
-                <div class="card"><h3>Pending Purchases</h3><p>8</p></div>
-                <div class="card"><h3>Completed Purchases</h3><p>150</p></div>
+                <div class="card">
+                    <h3>Total Products</h3>
+                    <p>120</p>
+                </div>
+                <div class="card">
+                    <h3>Inventory Value</h3>
+                    <p>₱250,000</p>
+                </div>
+                <div class="card">
+                    <h3>Pending Purchases</h3>
+                    <p>8</p>
+                </div>
+                <div class="card">
+                    <h3>Completed Purchases</h3>
+                    <p>150</p>
+                </div>
             </div>
 
             <div class="charts">
-                <div class="chart"><h3>Stock Levels</h3><canvas id="stockChart"></canvas></div>
-                <div class="chart"><h3>Purchases Overview</h3><canvas id="purchaseChart"></canvas></div>
+                <div class="chart">
+                    <h3>Stock Levels</h3><canvas id="stockChart"></canvas>
+                </div>
+                <div class="chart">
+                    <h3>Purchases Overview</h3><canvas id="purchaseChart"></canvas>
+                </div>
             </div>
 
             <div class="tables">
                 <div class="table">
                     <h3>Recent Activity</h3>
                     <table>
-                        <thead><tr><th>Date</th><th>Activity</th><th>Status</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Activity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            <tr><td>2025-09-20</td><td>Purchased from Supplier A</td><td>Completed</td></tr>
-                            <tr><td>2025-09-19</td><td>Added new product</td><td>Success</td></tr>
-                            <tr><td>2025-09-18</td><td>Inventory updated</td><td>Success</td></tr>
+                            <tr>
+                                <td>2025-09-20</td>
+                                <td>Purchased from Supplier A</td>
+                                <td>Completed</td>
+                            </tr>
+                            <tr>
+                                <td>2025-09-19</td>
+                                <td>Added new product</td>
+                                <td>Success</td>
+                            </tr>
+                            <tr>
+                                <td>2025-09-18</td>
+                                <td>Inventory updated</td>
+                                <td>Success</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -97,17 +133,19 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
 
             <!-- show messages -->
             <?php if (isset($_SESSION['success'])): ?>
-                <div class="alert success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+                <div class="alert success"><?= $_SESSION['success'];
+                                            unset($_SESSION['success']); ?></div>
             <?php endif; ?>
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert error"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+                <div class="alert error"><?= $_SESSION['error'];
+                                            unset($_SESSION['error']); ?></div>
             <?php endif; ?>
 
             <form action="update_profile_budegero.php" method="POST" enctype="multipart/form-data" id="profileForm">
                 <div class="profile-pic-wrapper">
                     <?php
-                        $modal_pic = '../uploads/default.png';
-                        if (!empty($_SESSION['profile_pic'])) $modal_pic = '../' . ltrim($_SESSION['profile_pic'], '/');
+                    $modal_pic = '../uploads/default.png';
+                    if (!empty($_SESSION['profile_pic'])) $modal_pic = '../' . ltrim($_SESSION['profile_pic'], '/');
                     ?>
                     <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Profile" id="profilePreview">
                     <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
@@ -143,17 +181,33 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
         // Charts
         new Chart(document.getElementById('stockChart'), {
             type: 'bar',
-            data: { labels: ['Item A','Item B','Item C','Item D','Item E'], datasets: [{label:'Stock Level',data:[30,50,20,15,40]}]}
+            data: {
+                labels: ['Item A', 'Item B', 'Item C', 'Item D', 'Item E'],
+                datasets: [{
+                    label: 'Stock Level',
+                    data: [30, 50, 20, 15, 40]
+                }]
+            }
         });
         new Chart(document.getElementById('purchaseChart'), {
             type: 'line',
-            data: { labels: ['Jan','Feb','Mar','Apr','May'], datasets: [{label:'Purchases',data:[5,8,6,10,7]}]}
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                datasets: [{
+                    label: 'Purchases',
+                    data: [5, 8, 6, 10, 7]
+                }]
+            }
         });
 
         // Profile dropdown toggle
         const profile = document.getElementById("profileMenu");
-        profile.addEventListener("click", () => { profile.classList.toggle("active"); });
-        document.addEventListener("click", (e) => { if (!profile.contains(e.target)) profile.classList.remove("active"); });
+        profile.addEventListener("click", () => {
+            profile.classList.toggle("active");
+        });
+        document.addEventListener("click", (e) => {
+            if (!profile.contains(e.target)) profile.classList.remove("active");
+        });
 
         // Modal
         const profileLink = document.querySelector('#dropdownMenu a[href="#profile"]');
@@ -166,17 +220,17 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
             profileLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 profileModal.style.display = 'flex';
-                profileModal.setAttribute('aria-hidden','false');
+                profileModal.setAttribute('aria-hidden', 'false');
             });
         }
         closeProfile.addEventListener('click', () => {
             profileModal.style.display = 'none';
-            profileModal.setAttribute('aria-hidden','true');
+            profileModal.setAttribute('aria-hidden', 'true');
         });
         window.addEventListener('click', (e) => {
             if (e.target === profileModal) {
                 profileModal.style.display = 'none';
-                profileModal.setAttribute('aria-hidden','true');
+                profileModal.setAttribute('aria-hidden', 'true');
             }
         });
         if (profilePicInput && profilePreview) {
@@ -190,10 +244,12 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
         <?php if (!empty($_SESSION['open_profile_modal'])): ?>
             document.addEventListener('DOMContentLoaded', function() {
                 profileModal.style.display = 'flex';
-                profileModal.setAttribute('aria-hidden','false');
+                profileModal.setAttribute('aria-hidden', 'false');
             });
-        <?php unset($_SESSION['open_profile_modal']); endif; ?>
+        <?php unset($_SESSION['open_profile_modal']);
+        endif; ?>
     </script>
 
 </body>
+
 </html>
