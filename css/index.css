@@ -2,6 +2,7 @@
 
 :root{
     --black: #000;
+    --smokey: #100c08;
     --white: #fff;
     --whieTwo: #ddd;
     --whiteThree: #ccc;
@@ -27,7 +28,7 @@ body {
     margin: 15px 0;
     padding: 10px 15px;
     background-color: #f9f9f9;
-    border-left: 4px solid var(--black);
+    border-left: 4px solid var(--smokey);
     border-radius: 5px;
     color: #333;
     font-size: 0.95em;
@@ -94,7 +95,7 @@ body {
     gap: 10px;
     font-size: 24px;
     font-weight: bold;
-    color: var(--black);
+    color: var(--smokey);
     margin-bottom: 70px;
     margin-top: -25px;
 }
@@ -189,13 +190,13 @@ body {
 }
 
 .btn-primary {
-    background: var(--black);
+    background: var(--smokey);
     color: var(--white);
 }
 
 .btn-primary:hover {
     background: var(--white);
-    color: var(--black);
+    color: var(--smokey);
     box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
         inset -6px -6px 12px rgba(255, 255, 255, 0.7);
 }
@@ -207,7 +208,7 @@ body {
 }
 
 .toggle-link a {
-    color: var(--black);
+    color: var(--smokey);
     font-weight: bold;
     cursor: pointer;
     text-decoration: none;

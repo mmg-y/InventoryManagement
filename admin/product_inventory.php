@@ -2,17 +2,36 @@
 include '../config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
-    $code = $_POST['product_code'];
-    $name = $_POST['product_name'];
-    $quantity = $_POST['quantity'];
-    $price = $_POST['price'];
-    $status = $_POST['notice_status'];
-    $threshold = $_POST['threshold'];
+    $code = trim($_POST['product_code']);
+    $name = trim($_POST['product_name']);
+    $quantity = trim($_POST['quantity']);
+    $price = trim($_POST['price']);
+    $status = trim($_POST['notice_status']);
+    $threshold = trim($_POST['threshold']);
+
+    $errors = [];
+
+    if (empty($code)) $errors[] = "Product code is required.";
+    if (empty($name)) $errors[] = "Product name is required.";
+    if (!is_numeric($quantity) || $quantity < 0) $errors[] = "Quantity must be a valid number (0 or greater).";
+    if (!is_numeric($price) || $price < 0) $errors[] = "Price must be a valid positive number.";
+    if (!empty($threshold) && (!is_numeric($threshold) || $threshold < 0)) $errors[] = "Threshold must be a valid number.";
+
+    $check = $conn->query("SELECT * FROM product WHERE product_code = '$code'");
+    if ($check && $check->num_rows > 0) {
+        $errors[] = "Product code already exists.";
+    }
+
+    if (!empty($errors)) {
+        $errorStr = urlencode(implode(" ", $errors));
+        header("Location: admin.php?page=product_inventory&msg=updated");
+        exit;
+    }
 
     $sql = "INSERT INTO product (product_code, product_name, quantity, price, notice_status, threshold, created_at, updated_at)
             VALUES ('$code', '$name', '$quantity', '$price', '$status', '$threshold', NOW(), NOW())";
     $conn->query($sql);
-    header("Location: admin.php?msg=added");
+    header("Location: admin.php?page=product_inventory&msg=added");
     exit;
 }
 
@@ -35,14 +54,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_product'])) {
                 updated_at=NOW()
             WHERE product_id='$id'";
     $conn->query($sql);
-    header("Location: product_inventory.php?msg=updated");
+    header("Location: admin.php?page=product_inventory&msg=updated");
     exit;
 }
 
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $conn->query("DELETE FROM product WHERE product_id='$id'");
-    header("Location: product_inventory.php?msg=deleted");
+    header("Location: admin.php?page=product_inventory&msg=deleted");
     exit;
 }
 
@@ -68,6 +87,7 @@ $pages = ceil($total / $limit);
 $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT $start, $limit");
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -80,7 +100,19 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
 </head>
 
 <body>
-    <h1>Products & Inventory</h1>
+    <h1 class="page-title">Products & Inventory</h1>
+
+    <?php if (isset($_GET['msg'])): ?>
+        <div class="alert 
+                <?= $_GET['msg'] === 'added' ? 'success' : ($_GET['msg'] === 'updated' ? 'success' : ($_GET['msg'] === 'deleted' ? 'danger' : 'error')) ?>">
+            <?php
+            if ($_GET['msg'] === 'added') echo "Product added successfully!";
+            elseif ($_GET['msg'] === 'updated') echo "Product updated successfully!";
+            elseif ($_GET['msg'] === 'deleted') echo "Product deleted successfully!";
+            elseif ($_GET['msg'] === 'error' && isset($_GET['details'])) echo "⚠️ " . htmlspecialchars($_GET['details']);
+            ?>
+        </div>
+    <?php endif; ?>
 
     <div class="actions-bar">
         <form method="GET" class="search-form">
@@ -172,7 +204,12 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
                 <label>Price</label>
                 <input type="number" step="0.01" name="price" required>
                 <label>Status</label>
-                <input type="text" name="notice_status">
+                <select name="notice_status" required>
+                    <option value="available">Available</option>
+                    <option value="low stock">Low Stock</option>
+                    <option value="out of stock">Out of Stock</option>
+                </select>
+
                 <label>Threshold</label>
                 <input type="number" name="threshold">
                 <button type="submit" class="save-btn">Add Product</button>
@@ -201,7 +238,12 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
                 <input type="number" step="0.01" name="price" id="edit_price" required>
 
                 <label>Status</label>
-                <input type="text" name="notice_status" id="edit_status">
+                <select name="notice_status" id="edit_status">
+                    <option value="available">Available</option>
+                    <option value="low stock">Low Stock</option>
+                    <option value="out of stock">Out of Stock</option>
+                </select>
+
 
                 <label>Threshold</label>
                 <input type="number" name="threshold" id="edit_threshold">

@@ -2,6 +2,7 @@
 
 :root {
     --black: #000;
+    --smokey: #100c08;
     --white: #fff;
     --blue: #102C57;
     --whiteOne: #f6f7fb;
@@ -34,7 +35,7 @@ body {
     font-size: 20px;
     font-weight: bold;
     margin-bottom: 30px;
-    color: var(--black);
+    color: var(--smokey);
 }
 
 .logo img {
@@ -58,7 +59,7 @@ body {
 .sidebar h2 {
     text-align: center;
     margin-bottom: 20px;
-    color: var(--black);
+    color: var(--smokey);
 }
 
 .sidebar .menu li {
@@ -89,7 +90,7 @@ body {
 
 .sidebar .menu li:hover,
 .sidebar .menu li.active {
-    background: var(--blue); 
+    background: var(--smokey);
 }
 
 .sidebar .menu li:hover a,
@@ -179,18 +180,79 @@ body {
     cursor: pointer;
     font-size: 18px;
     position: relative;
-    right: -50px;
 }
 
 .icon-btn .badge {
     position: absolute;
     top: -5px;
-    right: -8px;
+    right: -5px;
     background: red;
-    color: var(--white);
+    color: #fff;
     font-size: 12px;
     border-radius: 50%;
     padding: 2px 6px;
+}
+
+.notification-wrapper {
+    position: relative;
+}
+
+.notification-dropdown {
+    list-style: none;
+    position: absolute;
+    top: 120%;
+    right: 0;
+    background: var(--white);
+    border: 1px solid var(--whiteFour);
+    border-radius: 8px;
+    display: none;
+    flex-direction: column;
+    min-width: 250px;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 200;
+    padding: 5px 0;
+}
+
+.notification-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--whiteFour);
+    font-size: 13px;
+    color: #333;
+    text-decoration: none;
+    cursor: pointer;
+    display: block;
+    transition: background 0.2s;
+}
+
+.notification-item:hover {
+    background: #f6f6f6;
+}
+
+.notification-item.unread {
+    background: #eef3ff;
+    font-weight: bold;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item small {
+    display: block;
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+
+.notification-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-dropdown::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
 }
 
 .profile {
@@ -264,7 +326,7 @@ body {
 .card p {
     font-size: 22px;
     font-weight: bold;
-    color: var(--black);
+    color: var(--smokey);
 }
 
 .charts,
@@ -314,21 +376,21 @@ body {
 }
 
 .modal-content {
-    background: #fff;
+    background: var(--white);
     padding: 25px;
     border-radius: 12px;
     width: 400px;
     max-width: 95%;
-    max-height: 90vh;   /* limit modal height */
-    overflow-y: auto;   /* enable scroll inside modal */
+    max-height: 90vh;   
+    overflow-y: auto;  
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     position: relative;
     animation: fadeIn 0.3s ease-in-out;
 }
 
-/* Scrollbar styling */
+
 .modal-content::-webkit-scrollbar {
-    width: 8px;   /* thin scrollbar */
+    width: 8px;   
 }
 
 .modal-content::-webkit-scrollbar-track {
@@ -337,12 +399,12 @@ body {
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-    background: #102C57;   /* dark blue */
+    background: var(--smokey);
     border-radius: 10px;
 }
 
 .modal-content::-webkit-scrollbar-thumb:hover {
-    background: #0d2345;   /* slightly darker on hover */
+    background: #0d2345;   
 }
 
 

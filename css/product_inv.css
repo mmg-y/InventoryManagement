@@ -2,6 +2,7 @@
 
 :root {
     --black: #000;
+    --smokey: #100c08;
     --white: #fff;
     --blue: #102C57;
     --whiteOne: #f6f7fb;
@@ -17,8 +18,7 @@
 
 .main h1 {
     margin-bottom: 20px;
-    font-size: 24px;
-    color: var(--black);
+    /* font-size: 24px; */
 }
 
 .table-container {
@@ -93,7 +93,7 @@ th a:hover {
 }
 
 .search-form button {
-    background: var(--black);
+    background: var(--smokey);
     border: none;
     color: var(--white);
     padding: 8px 12px;
@@ -104,7 +104,7 @@ th a:hover {
 
 .search-form button:hover {
     background: var(--white);
-    color: var(--black);
+    color: var(--smokey);
 }
 
 .actions button {
@@ -122,8 +122,15 @@ th a:hover {
 }
 
 .delete-btn {
+    display: inline-block; 
+    border: none;
+    padding: 6px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
     background: #ef4444;
     color: var(--white);
+    text-decoration: none;
 }
 
 .add-btn {
@@ -197,13 +204,13 @@ th a:hover {
 }
 
 .close:hover {
-    color: var(--blue);
+    color: var(--smokey);
 }
 
 .modal-content h2 {
     margin-bottom: 20px;
     font-size: 22px;
-    color: var(--black);
+    color: var(--smokey);
 }
 
 .modal-content form {
@@ -227,12 +234,12 @@ th a:hover {
 }
 
 .modal-content input:focus {
-    border-color: var(--blue);
+    border-color: var(--smokey);
     box-shadow: 0 0 5px rgba(16, 44, 87, 0.3);
 }
 
 .save-btn {
-    background: var(--blue);
+    background: var(--smokey);
     color: var(--white);
     padding: 10px 15px;
     border: none;
@@ -243,5 +250,88 @@ th a:hover {
 }
 
 .save-btn:hover {
-    background: var(--blue);
+    background: var(--white);
+    color: var(--smokey);
+    box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+            inset -6px -6px 12px rgba(255, 255, 255, 0.7);
+}
+
+.alert {
+    padding: 12px 20px;
+    margin: 15px 0;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 500;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.alert.success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.alert.danger {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.alert.error {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-content select {
+    padding: 10px 12px;
+    border: 1px solid var(--whiteThree);
+    border-radius: 6px;
+    background: var(--white);
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+}
+
+.pagination {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.pagination a {
+    display: inline-block;
+    padding: 8px 14px;
+    margin: 0 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--blue);
+    background: var(--whiteOne);
+    border: 1px solid var(--whiteThree);
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.pagination a:hover {
+    box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+        inset -6px -6px 12px rgba(255, 255, 255, 0.7);
+}
+
+.pagination a.active {
+    background: var(--smokey);
+    color: var(--white);
+    border-color: var(--smokey);
+    pointer-events: none;
 }

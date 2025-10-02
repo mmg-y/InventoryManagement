@@ -1,7 +1,6 @@
 <?php
 include '../config.php';
 
-// Handle Add Supplier
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_supplier'])) {
     $name = $_POST['name'];
     $contact = $_POST['contact'];
@@ -18,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_supplier'])) {
     exit;
 }
 
-// Fetch Suppliers
 $result = $conn->query("SELECT * FROM supplier ORDER BY created_at DESC");
 $suppliers = $result->fetch_all(MYSQLI_ASSOC);
 ?>
@@ -32,7 +30,6 @@ $suppliers = $result->fetch_all(MYSQLI_ASSOC);
         <div class="alert success"><?= htmlspecialchars($_GET['success']); ?></div>
     <?php endif; ?>
 
-    <!-- Add Supplier Form -->
     <div class="card">
         <h2>Add New Supplier</h2>
         <form method="POST">
@@ -57,7 +54,6 @@ $suppliers = $result->fetch_all(MYSQLI_ASSOC);
         </form>
     </div>
 
-    <!-- Supplier List -->
     <div class="table">
         <h2>Supplier List</h2>
         <table>

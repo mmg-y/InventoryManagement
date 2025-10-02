@@ -2,91 +2,93 @@
 session_start();
 include "config.php";
 
-$message = "";
+$loginMessage = "";
+$signupMessage = "";
 
-if (isset($_POST['action']) && $_POST['action'] === "signup") {
-    $first_name = trim($_POST['first_name'] ?? '');
-    $last_name  = trim($_POST['last_name'] ?? '');
-    $contact    = trim($_POST['contact'] ?? '');
-    $email      = trim($_POST['email'] ?? '');
-    $username   = trim($_POST['username'] ?? '');
-    $password   = $_POST['password'] ?? '';
-    $type       = trim($_POST['type'] ?? '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
 
-    if ($first_name && $last_name && $contact && $email && $username && $password && $type) {
+    if ($action === 'signup') {
+        $first_name = trim($_POST['first_name'] ?? '');
+        $last_name  = trim($_POST['last_name'] ?? '');
+        $contact    = trim($_POST['contact'] ?? '');
+        $email      = trim($_POST['email'] ?? '');
+        $username   = trim($_POST['username'] ?? '');
+        $password   = $_POST['password'] ?? '';
+        $type       = trim($_POST['type'] ?? '');
 
-        $stmt = $conn->prepare("SELECT id FROM user WHERE username=? OR email=? LIMIT 1");
-        $stmt->bind_param("ss", $username, $email);
-        $stmt->execute();
-        $stmt->store_result();
+        if ($first_name && $last_name && $contact && $email && $username && $password && $type) {
+            $stmt = $conn->prepare("SELECT id FROM user WHERE username=? OR email=? LIMIT 1");
+            $stmt->bind_param("ss", $username, $email);
+            $stmt->execute();
+            $stmt->store_result();
 
-        if ($stmt->num_rows > 0) {
-            $message = "⚠ Username or Email already exists!";
-        } else {
-            $password_hashed = password_hash($password, PASSWORD_BCRYPT);
-            $created_at = date("Y-m-d H:i:s");
-
-            $stmt = $conn->prepare("INSERT INTO user 
-                (first_name, last_name, contact, email, username, password, type, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssssssss", $first_name, $last_name, $contact, $email, $username, $password_hashed, $type, $created_at);
-
-            if ($stmt->execute()) {
-                $message = "✅ Signup successful! Please log in.";
+            if ($stmt->num_rows > 0) {
+                $signupMessage = "⚠ Username or Email already exists!";
             } else {
-                $message = "❌ Error: " . $conn->error;
-            }
-        }
-        $stmt->close();
-    } else {
-        $message = "❌ Missing signup fields!";
-    }
-}
+                $password_hashed = password_hash($password, PASSWORD_BCRYPT);
+                $created_at = date("Y-m-d H:i:s");
 
-if (isset($_POST['action']) && $_POST['action'] === "login") {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+                $stmt = $conn->prepare("INSERT INTO user 
+                    (first_name, last_name, contact, email, username, password, type, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("ssssssss", $first_name, $last_name, $contact, $email, $username, $password_hashed, $type, $created_at);
 
-    if ($username && $password) {
-        $stmt = $conn->prepare("SELECT * FROM user WHERE username=? LIMIT 1");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($row = $result->fetch_assoc()) {
-            if (password_verify($password, $row['password'])) {
-                $_SESSION['id']          = $row['id'];
-                $_SESSION['username']    = $row['username'];
-                $_SESSION['first_name']  = $row['first_name'];
-                $_SESSION['last_name']   = $row['last_name'];
-                $_SESSION['contact']     = $row['contact'];
-                $_SESSION['email']       = $row['email'];
-                $_SESSION['type']        = $row['type'];
-                $_SESSION['profile_pic'] = !empty($row['profile_pic']) ? $row['profile_pic'] : 'uploads/default.png';
-
-
-                if ($row['type'] === "admin") {
-                    header("Location: admin/admin.php");
-                } elseif ($row['type'] === "staff") {
-                    header("Location: staff/staff.php");
-                } elseif ($row['type'] === "bodegero") {
-                    header("Location: budegero/budegero.php");
+                if ($stmt->execute()) {
+                    $signupMessage = "✅ Signup successful! Please log in.";
                 } else {
-                    $message = "❌ Unknown user type!";
+                    $signupMessage = "❌ Error: " . $conn->error;
                 }
-                exit;
-            } else {
-                $message = "❌ Invalid password!";
             }
+            $stmt->close();
         } else {
-            $message = "❌ No account found!";
+            $signupMessage = "❌ Please fill in all signup fields!";
         }
-        $stmt->close();
-    } else {
-        $message = "❌ Missing login fields!";
+    }
+
+    if ($action === 'login') {
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        if ($username && $password) {
+            $stmt = $conn->prepare("SELECT * FROM user WHERE username=? LIMIT 1");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($row = $result->fetch_assoc()) {
+                if (password_verify($password, $row['password'])) {
+                    $_SESSION['id']          = $row['id'];
+                    $_SESSION['username']    = $row['username'];
+                    $_SESSION['first_name']  = $row['first_name'];
+                    $_SESSION['last_name']   = $row['last_name'];
+                    $_SESSION['contact']     = $row['contact'];
+                    $_SESSION['email']       = $row['email'];
+                    $_SESSION['type']        = $row['type'];
+                    $_SESSION['profile_pic'] = !empty($row['profile_pic']) ? $row['profile_pic'] : 'uploads/default.png';
+
+                    if ($row['type'] === "admin") {
+                        header("Location: admin/admin.php");
+                    } elseif ($row['type'] === "staff") {
+                        header("Location: staff/staff.php");
+                    } elseif ($row['type'] === "bodegero") {
+                        header("Location: budegero/budegero.php");
+                    }
+                    exit;
+                } else {
+                    $loginMessage = "❌ Invalid password!";
+                }
+            } else {
+                $loginMessage = "❌ No account found!";
+            }
+            $stmt->close();
+        } else {
+            $loginMessage = "❌ Please fill in all login fields!";
+        }
     }
 }
 ?>
+
 
 
 <!DOCTYPE html>
@@ -110,7 +112,7 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
             <div class="top-text">IMS</div>
             <div class="quote">
                 <h2>Inventory in Sales Management</h2>
-                <p>You can get everything you want if you work hard, trust the process, and stick to the plan.</p>
+                <p>Organize your stock, streamline your sales, and watch your business grow.</p>
             </div>
         </div>
 
@@ -123,8 +125,8 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
                 <h1>Welcome Back</h1>
                 <p>Enter your email and password to access your account</p>
 
-                <?php if (!empty($message) && $_POST['action'] === 'login'): ?>
-                    <div class="message"><?= htmlspecialchars($message) ?></div>
+                <?php if (!empty($loginMessage)): ?>
+                    <div class="message"><?= htmlspecialchars($loginMessage) ?></div>
                 <?php endif; ?>
 
 
@@ -151,10 +153,9 @@ if (isset($_POST['action']) && $_POST['action'] === "login") {
                 <h1>Create Account</h1>
                 <p>Fill in the details below to create your account</p>
 
-                <?php if (!empty($message) && $_POST['action'] === 'signup'): ?>
-                    <div class="message"><?= htmlspecialchars($message) ?></div>
+                <?php if (!empty($signupMessage)): ?>
+                    <div class="message"><?= htmlspecialchars($signupMessage) ?></div>
                 <?php endif; ?>
-
 
                 <form action="index.php" method="POST">
                     <input type="hidden" name="action" value="signup">
