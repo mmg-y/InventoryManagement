@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
     $sql = "INSERT INTO product (product_code, product_name, quantity, price, notice_status, threshold, created_at, updated_at)
             VALUES ('$code', '$name', '$quantity', '$price', '$status', '$threshold', NOW(), NOW())";
     $conn->query($sql);
-    header("Location: product_inventory.php?msg=added");
+    header("Location: admin.php?msg=added");
     exit;
 }
 
@@ -121,7 +121,7 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
                             <td><?= $row['product_name'] ?></td>
                             <td><?= $row['quantity'] ?></td>
                             <td><?= $row['price'] ?></td>
-                            <td><?= $row['notice_status'] ?></td>
+                            <td><?= $row['notice_Status'] ?></td>
                             <td><?= $row['threshold'] ?></td>
                             <td class="actions">
                                 <button class="edit-btn"
@@ -130,7 +130,7 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
                                     data-name="<?= $row['product_name'] ?>"
                                     data-quantity="<?= $row['quantity'] ?>"
                                     data-price="<?= $row['price'] ?>"
-                                    data-status="<?= $row['notice_status'] ?>"
+                                    data-status="<?= $row['notice_Status'] ?>"
                                     data-threshold="<?= $row['threshold'] ?>">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>

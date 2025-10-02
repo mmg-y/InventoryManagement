@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_purchase'])) {
     $sql = "INSERT INTO stock (po_num, bodegero, product_name, qty, status, created_at, updated_at)
             VALUES ('$po_num', '$supplier_id', '$product_name', '$qty', '$status', NOW(), NOW())";
     $conn->query($sql);
-    header("Location: supplier_purchases.php?msg=added");
+    header("Location: admin.php?msg=added");
     exit;
 }
 
@@ -24,13 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_purchase'])) {
 
     $sql = "UPDATE stock SET po_num='$po_num', product_name='$product_name', qty='$qty', status='$status', updated_at=NOW() WHERE stock_id='$id'";
     $conn->query($sql);
-    header("Location: supplier_purchases.php?msg=updated");
+    header("Location: admin.php?msg=updated");
     exit;
 }
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $conn->query("DELETE FROM stock WHERE stock_id='$id'");
-    header("Location: supplier_purchases.php?msg=deleted");
+    header("Location: admin.php?msg=deleted");
     exit;
 }
 
@@ -51,6 +51,12 @@ $total = $conn->query("SELECT COUNT(*) as count FROM stock s LEFT JOIN supplier 
 $pages = ceil($total / $limit);
 
 $result = $conn->query("SELECT s.*, sp.supplier_type, sp.contact, sp.email FROM stock s LEFT JOIN supplier sp ON s.bodegero = sp.supplier_id $where ORDER BY $sort $order LIMIT $start, $limit");
+$result = $conn->query("SELECT s.*, sp.name AS supplier_name, sp.supplier_type, sp.contact, sp.email 
+    FROM stock s 
+    LEFT JOIN supplier sp ON s.bodegero = sp.supplier_id 
+    $where 
+    ORDER BY $sort $order 
+    LIMIT $start, $limit");
 ?>
 
 <!DOCTYPE html>
@@ -103,7 +109,7 @@ $result = $conn->query("SELECT s.*, sp.supplier_type, sp.contact, sp.email FROM 
                         <tr>
                             <td><?= $row['stock_id'] ?></td>
                             <td><?= $row['po_num'] ?></td>
-                            <td><?= $row['supplier_type'] ?></td>
+                            <td><?= $row['supplier_name'] ?> (<?= $row['supplier_type'] ?>)</td>
                             <td><?= $row['product_name'] ?></td>
                             <td><?= $row['qty'] ?></td>
                             <td><?= $row['status'] ?></td>
@@ -151,13 +157,13 @@ $result = $conn->query("SELECT s.*, sp.supplier_type, sp.contact, sp.email FROM 
                 <input type="text" name="po_num" required>
                 <label>Supplier</label>
                 <select name="supplier_id" required>
-                    <option value="">Select Supplier</option>
-                    <?php
-                    $suppliers = $conn->query("SELECT * FROM supplier");
-                    while ($sup = $suppliers->fetch_assoc()) {
-                        echo "<option value='{$sup['supplier_id']}'>{$sup['supplier_type']}</option>";
-                    }
-                    ?>
+                     <option value="">Select Supplier</option>
+                <?php
+                     $suppliers = $conn->query("SELECT * FROM supplier ORDER BY name ASC");
+                     while ($sup = $suppliers->fetch_assoc()) {
+                     echo "<option value='{$sup['supplier_id']}'>{$sup['name']} ({$sup['supplier_type']})</option>";
+                 }
+                 ?>
                 </select>
                 <label>Product</label>
                 <input type="text" name="product_name" required>
