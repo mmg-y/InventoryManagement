@@ -80,7 +80,7 @@ $lowStockItems = $conn->query("SELECT product_name, quantity FROM product WHERE 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 
-<h1 class="page-title">Admin Dashboard</h1>
+<h1 class="page-title">Staff Dashboard</h1>
 
 <section class="dashboard">
     <div class="stats">
