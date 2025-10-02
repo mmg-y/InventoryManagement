@@ -39,6 +39,9 @@ if (!empty($_SESSION['profile_pic'])) {
                 <li class="<?= ($_GET['page'] ?? '') === 'user_roles' ? 'active' : '' ?>">
                     <a href="?page=user_roles"><i class="fa-solid fa-user-shield"></i> User Roles</a>
                 </li>
+                <li class="<?= ($_GET['page'] ?? '') === 'supplier' ? 'active' : '' ?>">
+                     <a href="?page=supplier"><i class="fa-solid fa-user-plus"></i> Add Supplier</a>
+                </li>
                 <li class="<?= ($_GET['page'] ?? '') === 'product_inventory' ? 'active' : '' ?>">
                     <a href="?page=product_inventory"><i class="fa-solid fa-boxes-stacked"></i> Products & Inventory</a>
                 </li>
@@ -99,6 +102,9 @@ if (!empty($_SESSION['profile_pic'])) {
                 switch ($page) {
                     case 'user_roles':
                         include 'user_roles.php';
+                        break;
+                    case 'supplier':
+                        include 'supplier.php';
                         break;
                     case 'product_inventory':
                         include 'product_inventory.php';
