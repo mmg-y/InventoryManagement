@@ -33,4 +33,3 @@
             array('message' => 'Post Not Updated')
         );
     }
-?>

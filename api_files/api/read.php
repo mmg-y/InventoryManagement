@@ -17,7 +17,7 @@
 
     //get row count
     $num = $result->num_rows;
-    
+
     //check if any posts
     if($num > 0){
         //post array
@@ -46,4 +46,3 @@
             array('message' => 'No Posts Found')
         );
     }
-?>

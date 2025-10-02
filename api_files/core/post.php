@@ -1,4 +1,4 @@
-<?
+<?php
 
 class Post{
     //db stuff
@@ -125,5 +125,3 @@ class Post{
         return false;
     }
 }
-
-?>
