@@ -109,7 +109,6 @@ $result = $conn->query("
                         'product_name' => 'Product',
                         'qty' => 'Quantity',
                         'status' => 'Status',
-                        'created_at' => 'Date'
                     ];
                     foreach ($columns as $col => $label) {
                         $indicator = ($sort === $col) ? ($order === 'ASC' ? '▲' : '▼') : '';
@@ -129,7 +128,6 @@ $result = $conn->query("
                             <td><?= $row['product_name'] ?></td>
                             <td><?= $row['qty'] ?></td>
                             <td><?= $row['status'] ?></td>
-                            <td><?= $row['created_at'] ?></td>
                             <td class="actions">
                                 <button class="edit-btn"
                                     data-id="<?= $row['stock_id'] ?>"
@@ -138,7 +136,7 @@ $result = $conn->query("
                                     data-product="<?= $row['product_name'] ?>"
                                     data-qty="<?= $row['qty'] ?>"
                                     data-status="<?= $row['status'] ?>">
-                                    <i class="fa fa-edit"></i>
+                                    <i class="fa-solid fa-pen"></i>
                                 </button>
                                 <a href="admin.php?page=supplier_purchases&delete=<?= $row['stock_id'] ?>"
                                     class="delete-btn"
