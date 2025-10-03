@@ -58,8 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_product'])) {
     exit;
 }
 
-if (isset($_GET['delete'])) {
-    $id = $_GET['delete'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_product'])) {
+    $id = $_POST['delete_product'];
     $conn->query("DELETE FROM product WHERE product_id='$id'");
     header("Location: admin.php?page=product_inventory&msg=deleted");
     exit;
@@ -166,9 +166,12 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
                                     data-threshold="<?= $row['threshold'] ?>">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
-                                <a href="?delete=<?= $row['product_id'] ?>" class="delete-btn" onclick="return confirm('Delete this product?')">
-                                    <i class="fa-solid fa-trash"></i>
-                                </a>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this product?');">
+                                    <input type="hidden" name="delete_product" value="<?= $row['product_id'] ?>">
+                                    <button type="submit" class="delete-btn">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     <?php } ?>
@@ -189,6 +192,7 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
         <?php endfor; ?>
     </div>
 
+    <!-- Add Product Modal -->
     <div id="addModal" class="modal">
         <div class="modal-content">
             <span class="close" id="closeAdd">&times;</span>
@@ -209,7 +213,6 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
                     <option value="low stock">Low Stock</option>
                     <option value="out of stock">Out of Stock</option>
                 </select>
-
                 <label>Threshold</label>
                 <input type="number" name="threshold">
                 <button type="submit" class="save-btn">Add Product</button>
@@ -217,6 +220,7 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
         </div>
     </div>
 
+    <!-- Edit Product Modal -->
     <div id="editModal" class="modal" style="display:none;">
         <div class="modal-content">
             <span class="close" id="closeEdit">&times;</span>
@@ -224,30 +228,22 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
             <form method="POST">
                 <input type="hidden" name="update_product" value="1">
                 <input type="hidden" name="product_id" id="edit_id">
-
                 <label>Product Code</label>
                 <input type="text" name="product_code" id="edit_code" required>
-
                 <label>Product Name</label>
                 <input type="text" name="product_name" id="edit_name" required>
-
                 <label>Quantity</label>
                 <input type="number" name="quantity" id="edit_quantity" required>
-
                 <label>Price</label>
                 <input type="number" step="0.01" name="price" id="edit_price" required>
-
                 <label>Status</label>
                 <select name="notice_status" id="edit_status">
                     <option value="available">Available</option>
                     <option value="low stock">Low Stock</option>
                     <option value="out of stock">Out of Stock</option>
                 </select>
-
-
                 <label>Threshold</label>
                 <input type="number" name="threshold" id="edit_threshold">
-
                 <button type="submit" class="save-btn">Save Changes</button>
             </form>
         </div>
@@ -276,7 +272,7 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
             btn.addEventListener("click", () => {
                 document.getElementById("edit_id").value = btn.dataset.id;
                 document.getElementById("edit_code").value = btn.dataset.code;
-                document.getElementById("edit_name").value = btn.dataset.name;
+                document.getElementById("edit_name").value = btn.dataset.name;  
                 document.getElementById("edit_quantity").value = btn.dataset.quantity;
                 document.getElementById("edit_price").value = btn.dataset.price;
                 document.getElementById("edit_status").value = btn.dataset.status;
@@ -291,5 +287,4 @@ $result = $conn->query("SELECT * FROM product $where ORDER BY $sort $order LIMIT
         };
     </script>
 </body>
-
 </html>
