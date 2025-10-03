@@ -178,7 +178,6 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
     </div>
 
     <script>
-        // Charts
         new Chart(document.getElementById('stockChart'), {
             type: 'bar',
             data: {

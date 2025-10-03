@@ -2,6 +2,7 @@
 
 :root {
     --black: #000;
+    --smokey: #100c08;
     --white: #fff;
     --blue: #102C57;
     --whiteOne: #f6f7fb;
@@ -72,7 +73,7 @@ body {
 
 .menu li.active,
 .menu li:hover {
-    background: var(--blue);
+    background: var(--smokey);
     color: var(--white);
 }
 
@@ -94,7 +95,7 @@ body {
 }
 
 .settings li:hover {
-    background: var(--blue);
+    background: var(--smokey);
     color: var(--white);
 }
 
@@ -289,21 +290,21 @@ table td {
 }
 
 .modal-content {
-    background: #fff;
+    background: var(--smokey);
     padding: 25px;
     border-radius: 12px;
     width: 400px;
     max-width: 95%;
-    max-height: 90vh;   /* limit modal height */
-    overflow-y: auto;   /* enable scroll inside modal */
+    max-height: 90vh;   
+    overflow-y: auto;   
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     position: relative;
     animation: fadeIn 0.3s ease-in-out;
 }
 
-/* Scrollbar styling */
+
 .modal-content::-webkit-scrollbar {
-    width: 8px;   /* thin scrollbar */
+    width: 8px;   
 }
 
 .modal-content::-webkit-scrollbar-track {
@@ -312,12 +313,12 @@ table td {
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-    background: #102C57;   /* dark blue */
+    background: var(--smokey);
     border-radius: 10px;
 }
 
 .modal-content::-webkit-scrollbar-thumb:hover {
-    background: #0d2345;   /* slightly darker on hover */
+    background: #0d2345; 
 }
 
 

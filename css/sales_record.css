@@ -2,6 +2,7 @@
 
 :root {
     --black: #000;
+    --smokey: #100c08;
     --white: #fff;
     --blue: #102C57;
     --whiteOne: #f6f7fb;
@@ -17,8 +18,7 @@
 
 .main h1 {
     margin-bottom: 20px;
-    font-size: 24px;
-    color: var(--black);
+    /* font-size: 27px; */
 }
 
 .table-container {
@@ -94,7 +94,7 @@ th a:hover {
 }
 
 .search-form button {
-    background: var(--blue);
+    background: var(--smokey);
     border: none;
     color: var(--white);
     padding: 8px 12px;
@@ -105,7 +105,7 @@ th a:hover {
 
 .search-form button:hover {
     background: var(--white);
-    color: var(--black);
+    color: var(--smokey);
 }
 
 .actions button {
@@ -204,7 +204,7 @@ th a:hover {
 .modal-content h2 {
     margin-bottom: 20px;
     font-size: 22px;
-    color: var(--black);
+    color: var(--smokey);
 }
 
 .modal-content form {

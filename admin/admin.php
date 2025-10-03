@@ -5,13 +5,39 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
     exit;
 }
 
-
 $profile_src = '../uploads/default.png';
 if (!empty($_SESSION['profile_pic'])) {
-
     $profile_src = '../' . ltrim($_SESSION['profile_pic'], '/');
 }
+
+include '../config.php';
+
+$notifications = [];
+
+$lowStockItems = $conn->query("SELECT product_name, quantity, threshold FROM product WHERE quantity <= threshold");
+while ($row = $lowStockItems->fetch_assoc()) {
+    $notifications[] = [
+        'message' => "Low stock: {$row['product_name']} ({$row['quantity']} left)",
+        'read' => false,
+        'link' => '#'
+    ];
+}
+
+$pendingPurchases = $conn->query("SELECT COUNT(*) as cnt FROM stock WHERE status='pending'")->fetch_assoc()['cnt'];
+if ($pendingPurchases > 0) {
+    $notifications[] = [
+        'message' => "You have {$pendingPurchases} pending purchase(s).",
+        'read' => false,
+        'link' => '#'
+    ];
+}
+
+$unreadCount = 0;
+foreach ($notifications as $note) {
+    if (!$note['read']) $unreadCount++;
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -40,7 +66,7 @@ if (!empty($_SESSION['profile_pic'])) {
                     <a href="?page=user_roles"><i class="fa-solid fa-user-shield"></i> User Roles</a>
                 </li>
                 <li class="<?= ($_GET['page'] ?? '') === 'supplier' ? 'active' : '' ?>">
-                     <a href="?page=supplier"><i class="fa-solid fa-user-plus"></i> Add Supplier</a>
+                    <a href="?page=supplier"><i class="fa-solid fa-user-plus"></i> Add Supplier</a>
                 </li>
                 <li class="<?= ($_GET['page'] ?? '') === 'product_inventory' ? 'active' : '' ?>">
                     <a href="?page=product_inventory"><i class="fa-solid fa-boxes-stacked"></i> Products & Inventory</a>
@@ -74,16 +100,33 @@ if (!empty($_SESSION['profile_pic'])) {
             <div class="search">
                 <input type="text" placeholder="Search...">
             </div>
+
             <div class="topbar-right">
-                <button class="icon-btn">
-                    <i class="fa-solid fa-bell" style="color: #000;"></i>
-                    <span class="badge">3</span>
-                </button>
-                <div class="icon">⚙</div>
+
+                <div class="notification-wrapper">
+                    <button class="icon-btn" id="notificationBtn">
+                        <i class="fa-solid fa-bell"></i>
+                        <?php if ($unreadCount > 0): ?>
+                            <span class="badge"><?= $unreadCount ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <?php if (empty($notifications)): ?>
+                            <div class="notification-item">No notifications</div>
+                        <?php else: ?>
+                            <?php foreach ($notifications as $note): ?>
+                                <a href="<?= htmlspecialchars($note['link']) ?>" class="notification-item <?= $note['read'] ? 'read' : 'unread' ?>">
+                                    <?= htmlspecialchars($note['message']) ?>
+                                </a>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
                 <div class="profile" id="profileMenu">
                     <img src="<?= htmlspecialchars($profile_src); ?>" alt="Profile" class="profile-img">
                     <span>
-                        <h1>Welcome, <?= $_SESSION['username']; ?>!</h1>
+                        <h1>Welcome, <?= htmlspecialchars($_SESSION['username']); ?>!</h1>
                     </span>
                     <i class="fa-solid fa-chevron-down chevron"></i>
 
@@ -94,6 +137,7 @@ if (!empty($_SESSION['profile_pic'])) {
                 </div>
             </div>
         </div>
+
 
         <div class="page-content">
             <?php
@@ -149,13 +193,11 @@ if (!empty($_SESSION['profile_pic'])) {
         });
     </script>
 
-    <!-- Change Profile Modal -->
     <div id="profileModal" class="modal" aria-hidden="true">
         <div class="modal-content">
             <span class="close-btn" id="closeProfile" aria-label="Close">&times;</span>
             <h2>Edit Profile</h2>
 
-            <!-- show messages -->
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert success"><?= $_SESSION['success'];
                                             unset($_SESSION['success']); ?></div>
@@ -252,7 +294,41 @@ if (!empty($_SESSION['profile_pic'])) {
         endif; ?>
     </script>
 
+    <script>
+        const profileMenu = document.getElementById("profileMenu");
+        const dropdownMenu = document.getElementById("dropdownMenu");
+        const notificationBtn = document.getElementById("notificationBtn");
+        const notificationDropdown = document.getElementById("notificationDropdown");
 
+        //  PROFILE DROPDOWN TOGGLE
+        profileMenu.addEventListener("click", (e) => {
+            e.stopPropagation(); // Prevent closing when clicking inside
+            dropdownMenu.classList.toggle("show");
+            notificationDropdown.style.display = 'none'; // Close notifications if open
+        });
+
+        // NOTIFICATIONS DROPDOWN TOGGLE 
+        notificationBtn.addEventListener("click", (e) => {
+            e.stopPropagation(); // Prevent closing when clicking inside
+            notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
+            dropdownMenu.classList.remove("show"); // Close profile dropdown if open
+        });
+
+        //  CLOSE DROPDOWNS WHEN CLICKING OUTSIDE 
+        document.addEventListener("click", () => {
+            dropdownMenu.classList.remove("show");
+            notificationDropdown.style.display = 'none';
+        });
+
+        //  OPTIONAL: MARK NOTIFICATION AS READ WHEN CLICKED 
+        document.querySelectorAll('.notification-item').forEach(item => {
+            item.addEventListener('click', () => {
+                item.classList.remove('unread');
+                item.classList.add('read');
+                // You can also make an AJAX call here to update 'read' in DB
+            });
+        });
+    </script>
 
 </body>
 

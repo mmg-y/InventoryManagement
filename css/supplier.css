@@ -2,6 +2,7 @@
 
 :root {
     --black: #000;
+    --smokey: #100c08;
     --white: #fff;
     --blue: #102C57;
     --whiteOne: #f6f7fb;
@@ -57,7 +58,7 @@
 }
 
 .save-btn {
-    background: var(--blue);
+    background: var(--smokey);
     color: var(--white);
     border: none;
     padding: 10px 15px;
@@ -67,10 +68,12 @@
 }
 
 .save-btn:hover {
-    background: #0d2345;
+    background: var(--white);
+    color: var(--smokey);
+    box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+            inset -6px -6px 12px rgba(255, 255, 255, 0.7);
 }
 
-/* Table styling */
 .table {
     background: var(--white);
     padding: 20px;
