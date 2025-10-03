@@ -1,7 +1,7 @@
 <?php
 include '../config.php';
 
-// ========== SALES ==========
+// SALES 
 $totalSales = $conn->query("SELECT SUM(total) as revenue FROM carts WHERE status='completed'")
     ->fetch_assoc()['revenue'] ?? 0;
 
@@ -47,14 +47,14 @@ while ($row = $topProducts->fetch_assoc()) {
     $productValues[] = $row['sold'];
 }
 
-// ========== INVENTORY ==========
+// INVENTORY 
 $lowStock = $conn->query("SELECT COUNT(*) as cnt FROM product WHERE quantity <= threshold")
     ->fetch_assoc()['cnt'] ?? 0;
 
 $totalInventoryValue = $conn->query("SELECT SUM(quantity * price) as value FROM product")
     ->fetch_assoc()['value'] ?? 0;
 
-// ========== SUPPLIER ==========
+// SUPPLIER 
 $pendingPurchases = $conn->query("SELECT COUNT(*) as cnt FROM stock WHERE status='pending'")
     ->fetch_assoc()['cnt'] ?? 0;
 

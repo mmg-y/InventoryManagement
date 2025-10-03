@@ -1,7 +1,7 @@
 <?php
 include '../config.php';
 
-// ======== GET PRODUCT SALES HISTORY ========
+// GET PRODUCT SALES HISTORY 
 $sql = "
     SELECT p.product_name, DATE(c.created_at) as sale_date, SUM(ci.qty) as total_qty
     FROM cart_items ci
@@ -19,7 +19,7 @@ while ($row = $result->fetch_assoc()) {
     $salesData[$row['product_name']]['values'][] = (int)$row['total_qty'];
 }
 
-// ======== FORECAST NEXT 7 DAYS (Moving Average) ========
+// FORECAST NEXT 7 DAYS (Moving Average) 
 $window = 7;
 $predictions = [];
 
@@ -40,13 +40,13 @@ foreach ($salesData as $product => $data) {
     }
 }
 
-// ======== Ensure at least one dummy product if no sales ========
+// Ensure at least one dummy product if no sales 
 if (empty($salesData)) {
     $salesData['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
     $predictions['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
 }
 
-// ======== Calculate overall 7-day sales growth for dashboard ========
+// Calculate overall 7-day sales growth for dashboard 
 $totalActual = 0;
 $totalPredicted = 0;
 foreach ($salesData as $product => $data) {

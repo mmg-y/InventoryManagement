@@ -45,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     //         $signupMessage = "❌ Please fill in all signup fields!";
     //     }
     // }
-
     if ($action === 'login') {
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
@@ -57,7 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $stmt->get_result();
 
             if ($row = $result->fetch_assoc()) {
-                if (password_verify($password, $row['password'])) {
+                // Block archived accounts
+                if ($row['archived'] == 1) {
+                    $loginMessage = "⚠ Your account has been archived. Please contact the administrator.";
+                } elseif (password_verify($password, $row['password'])) {
+                    // Set session for active accounts only
                     $_SESSION['id']          = $row['id'];
                     $_SESSION['username']    = $row['username'];
                     $_SESSION['first_name']  = $row['first_name'];
@@ -88,8 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="en">

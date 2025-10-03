@@ -27,8 +27,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
 
     // Determine status
     $status_label = 'sufficient';
-    if ($quantity <= $threshold && $quantity > 0) $status_label = 'low';
-    elseif ($quantity <= 0) $status_label = 'critical';
+
+    if ($quantity <= $threshold && $quantity > 0) {
+        $status_label = 'low';
+    } elseif ($quantity == 0) {
+        $status_label = 'out of stock';
+    } elseif ($quantity < 0) {
+        $status_label = 'critical';
+    }
+
 
     // Get status_id
     $status_row = $conn->query("SELECT status_id FROM status WHERE status_label='$status_label'")->fetch_assoc();
@@ -241,9 +248,10 @@ $result = $conn->query("
                                 <td class="<?php
                                             if ($status_label == 'sufficient') echo 'status-available';
                                             elseif ($status_label == 'low') echo 'status-low';
-                                            elseif ($status_label == 'critical') echo 'status-out';
+                                            elseif ($status_label == 'out of stock') echo 'status-out';
+                                            elseif ($status_label == 'critical') echo 'status-critical';
                                             ?>">
-                                    <?= $status_label ?>
+                                    <?= ucfirst($status_label) ?>
                                 </td>
 
                                 <td><?= $row['threshold'] ?></td>

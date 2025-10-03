@@ -1,7 +1,7 @@
 <?php
 include '../config.php';
 
-// ===================== AJAX HANDLER =====================
+// AJAX HANDLER 
 if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     $limit = 10;
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
