@@ -1,12 +1,39 @@
 <?php
 include '../config.php';
 
+// User, Product, Purchase, Sales totals 
 $userCount = $conn->query("SELECT COUNT(*) AS total FROM user")->fetch_assoc()['total'];
 $productCount = $conn->query("SELECT COUNT(*) AS total FROM product")->fetch_assoc()['total'];
 $purchaseCount = $conn->query("SELECT COUNT(*) AS total FROM stock")->fetch_assoc()['total'];
 $salesRevenue = $conn->query("SELECT IFNULL(SUM(total),0) AS revenue FROM carts WHERE status='completed'")->fetch_assoc()['revenue'];
-$salesPrediction = "+12%";
 
+// SALES PREDICTION
+// Last 7 days revenue
+$last7daysSales = $conn->query("
+    SELECT SUM(total) AS total
+    FROM carts
+    WHERE status='completed'
+      AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+")->fetch_assoc()['total'] ?? 0;
+
+// Previous 7 days revenue (days 8-14 ago)
+$prev7daysSales = $conn->query("
+    SELECT SUM(total) AS total
+    FROM carts
+    WHERE status='completed'
+      AND created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+      AND created_at < DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+")->fetch_assoc()['total'] ?? 0;
+
+// Calculate % growth
+if ($prev7daysSales > 0) {
+    $salesPrediction = (($last7daysSales - $prev7daysSales) / $prev7daysSales) * 100;
+} else {
+    $salesPrediction = 0; // fallback
+}
+$salesPrediction = ($salesPrediction >= 0 ? '+' : '') . round($salesPrediction, 2) . '%';
+
+// Recent Purchases 
 $recentPurchases = $conn->query("
     SELECT s.created_at AS date, sp.supplier_type AS supplier, s.qty AS items
     FROM stock s
@@ -15,6 +42,7 @@ $recentPurchases = $conn->query("
     LIMIT 5
 ");
 
+// Recent Sales 
 $recentSales = $conn->query("
     SELECT c.created_at AS date, c.seller AS customer, c.total AS total_amount
     FROM carts c
@@ -23,6 +51,7 @@ $recentSales = $conn->query("
     LIMIT 5
 ");
 
+//  Sales Trend 
 $salesTrend = $conn->query("
     SELECT DATE(created_at) AS sale_date, SUM(total) AS daily_total
     FROM carts
@@ -30,6 +59,7 @@ $salesTrend = $conn->query("
     GROUP BY DATE(created_at)
     ORDER BY sale_date ASC
 ");
+
 $trendData = ['labels' => [], 'values' => []];
 if ($salesTrend && $salesTrend->num_rows > 0) {
     while ($row = $salesTrend->fetch_assoc()) {
@@ -42,6 +72,7 @@ if (empty($trendData['labels'])) {
     $trendData['values'] = [0];
 }
 
+// Low Stock Products 
 $lowStockProducts = $conn->query("
     SELECT product_name, quantity 
     FROM product 
@@ -61,6 +92,7 @@ if (empty($inventoryLabels)) {
     $inventoryValues = [0];
 }
 
+// Supplier Stats 
 $supplierStats = $conn->query("
     SELECT sp.name, COUNT(s.stock_id) as total_orders
     FROM stock s
@@ -77,7 +109,52 @@ if (empty($supplierLabels)) {
     $supplierLabels = ['No Suppliers'];
     $supplierValues = [0];
 }
+
+// Optional: Next 7-day forecast per product (moving average) 
+$salesDataQuery = "
+    SELECT p.product_name, DATE(c.created_at) as sale_date, SUM(ci.qty) as total_qty
+    FROM cart_items ci
+    JOIN product p ON ci.product_id = p.product_id
+    JOIN carts c ON ci.cart_id = c.cart_id
+    WHERE c.status = 'completed'
+    GROUP BY p.product_id, DATE(c.created_at)
+    ORDER BY p.product_name, sale_date ASC
+";
+$result = $conn->query($salesDataQuery);
+
+$salesData = [];
+while ($row = $result->fetch_assoc()) {
+    $salesData[$row['product_name']]['labels'][] = $row['sale_date'];
+    $salesData[$row['product_name']]['values'][] = (int)$row['total_qty'];
+}
+
+// Moving average forecast for next 7 days
+$window = 7;
+$predictions = [];
+foreach ($salesData as $product => $data) {
+    $values = $data['values'];
+    $lastDate = end($data['labels']) ?: date('Y-m-d'); // fallback
+    $date = new DateTime($lastDate);
+
+    for ($i = 1; $i <= 7; $i++) {
+        $slice = array_slice($values, -$window);
+        $avg = !empty($slice) ? array_sum($slice) / count($slice) : 0;
+
+        $date->modify('+1 day');
+        $predictions[$product]['labels'][] = $date->format('Y-m-d');
+        $predictions[$product]['values'][] = round($avg, 2);
+
+        $values[] = $avg; // append for rolling window
+    }
+}
+
+// Fallback if no sales
+if (empty($salesData)) {
+    $salesData['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
+    $predictions['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
+}
 ?>
+
 
 <link rel="stylesheet" href="../css/dashboard.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -104,8 +181,9 @@ if (empty($supplierLabels)) {
     </div>
     <div class="card">
         <h3>Sales Prediction</h3>
-        <p><?= $salesPrediction ?></p>
+        <p>Revenue growth (last 7 days vs previous 7 days): <strong><?= $salesPrediction ?></strong></p>
     </div>
+
 </div>
 
 <div class="charts">

@@ -1,5 +1,8 @@
 <?php
-session_start();
+ob_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
     header("Location: index.php");
     exit;
@@ -61,6 +64,9 @@ foreach ($notifications as $note) {
             <ul class="menu">
                 <li class="<?= (!isset($_GET['page']) || $_GET['page'] === 'dashboard') ? 'active' : '' ?>">
                     <a href="?page=dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+                </li>
+                <li class="<?= ($_GET['page'] ?? '') === 'add_user' ? 'active' : '' ?>">
+                    <a href="?page=add_user"><i class="fa-solid fa-user-shield"></i> Add User</a>
                 </li>
                 <li class="<?= ($_GET['page'] ?? '') === 'user_roles' ? 'active' : '' ?>">
                     <a href="?page=user_roles"><i class="fa-solid fa-user-shield"></i> User Roles</a>
@@ -144,6 +150,9 @@ foreach ($notifications as $note) {
             if (isset($_GET['page'])) {
                 $page = $_GET['page'];
                 switch ($page) {
+                    case 'add_user':
+                        include 'add_user.php';
+                        break;
                     case 'user_roles':
                         include 'user_roles.php';
                         break;

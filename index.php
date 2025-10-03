@@ -8,43 +8,43 @@ $signupMessage = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    if ($action === 'signup') {
-        $first_name = trim($_POST['first_name'] ?? '');
-        $last_name  = trim($_POST['last_name'] ?? '');
-        $contact    = trim($_POST['contact'] ?? '');
-        $email      = trim($_POST['email'] ?? '');
-        $username   = trim($_POST['username'] ?? '');
-        $password   = $_POST['password'] ?? '';
-        $type       = trim($_POST['type'] ?? '');
+    // if ($action === 'signup') {
+    //     $first_name = trim($_POST['first_name'] ?? '');
+    //     $last_name  = trim($_POST['last_name'] ?? '');
+    //     $contact    = trim($_POST['contact'] ?? '');
+    //     $email      = trim($_POST['email'] ?? '');
+    //     $username   = trim($_POST['username'] ?? '');
+    //     $password   = $_POST['password'] ?? '';
+    //     $type       = trim($_POST['type'] ?? '');
 
-        if ($first_name && $last_name && $contact && $email && $username && $password && $type) {
-            $stmt = $conn->prepare("SELECT id FROM user WHERE username=? OR email=? LIMIT 1");
-            $stmt->bind_param("ss", $username, $email);
-            $stmt->execute();
-            $stmt->store_result();
+    //     if ($first_name && $last_name && $contact && $email && $username && $password && $type) {
+    //         $stmt = $conn->prepare("SELECT id FROM user WHERE username=? OR email=? LIMIT 1");
+    //         $stmt->bind_param("ss", $username, $email);
+    //         $stmt->execute();
+    //         $stmt->store_result();
 
-            if ($stmt->num_rows > 0) {
-                $signupMessage = "⚠ Username or Email already exists!";
-            } else {
-                $password_hashed = password_hash($password, PASSWORD_BCRYPT);
-                $created_at = date("Y-m-d H:i:s");
+    //         if ($stmt->num_rows > 0) {
+    //             $signupMessage = "⚠ Username or Email already exists!";
+    //         } else {
+    //             $password_hashed = password_hash($password, PASSWORD_BCRYPT);
+    //             $created_at = date("Y-m-d H:i:s");
 
-                $stmt = $conn->prepare("INSERT INTO user 
-                    (first_name, last_name, contact, email, username, password, type, created_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("ssssssss", $first_name, $last_name, $contact, $email, $username, $password_hashed, $type, $created_at);
+    //             $stmt = $conn->prepare("INSERT INTO user 
+    //                 (first_name, last_name, contact, email, username, password, type, created_at) 
+    //                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    //             $stmt->bind_param("ssssssss", $first_name, $last_name, $contact, $email, $username, $password_hashed, $type, $created_at);
 
-                if ($stmt->execute()) {
-                    $signupMessage = "✅ Signup successful! Please log in.";
-                } else {
-                    $signupMessage = "❌ Error: " . $conn->error;
-                }
-            }
-            $stmt->close();
-        } else {
-            $signupMessage = "❌ Please fill in all signup fields!";
-        }
-    }
+    //             if ($stmt->execute()) {
+    //                 $signupMessage = "✅ Signup successful! Please log in.";
+    //             } else {
+    //                 $signupMessage = "❌ Error: " . $conn->error;
+    //             }
+    //         }
+    //         $stmt->close();
+    //     } else {
+    //         $signupMessage = "❌ Please fill in all signup fields!";
+    //     }
+    // }
 
     if ($action === 'login') {
         $username = trim($_POST['username'] ?? '');
@@ -145,11 +145,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <button class="btn btn-primary" type="submit">Sign In</button>
-                    <div class="toggle-link">Don’t have an account? <a id="showSignup">Sign Up</a></div>
+                    <!-- <div class="toggle-link">Don’t have an account? <a id="showSignup">Sign Up</a></div> -->
                 </form>
             </div>
 
-            <div class="form-container" id="signup">
+            <!-- <div class="form-container" id="signup">
                 <h1>Create Account</h1>
                 <p>Fill in the details below to create your account</p>
 
@@ -195,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button class="btn btn-primary" type="submit">Sign Up</button>
                     <div class="toggle-link">Already have an account? <a id="showSignin">Sign In</a></div>
                 </form>
-            </div>
+            </div> -->
         </div>
     </div>
 

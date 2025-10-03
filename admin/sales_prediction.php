@@ -25,7 +25,7 @@ $predictions = [];
 
 foreach ($salesData as $product => $data) {
     $values = $data['values'];
-    $lastDate = end($data['labels']) ?: date('Y-m-d'); // fallback if no data
+    $lastDate = end($data['labels']) ?: date('Y-m-d');
     $date = new DateTime($lastDate);
 
     for ($i = 1; $i <= 7; $i++) {
@@ -45,6 +45,15 @@ if (empty($salesData)) {
     $salesData['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
     $predictions['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
 }
+
+// ======== Calculate overall 7-day sales growth for dashboard ========
+$totalActual = 0;
+$totalPredicted = 0;
+foreach ($salesData as $product => $data) {
+    $totalActual += array_sum($data['values']);
+    $totalPredicted += array_sum($predictions[$product]['values']);
+}
+$salesPredictionPercent = $totalActual > 0 ? round(($totalPredicted - $totalActual) / $totalActual * 100, 2) : 0;
 ?>
 
 <link rel="stylesheet" href="../css/sales_prediction.css">
@@ -53,6 +62,7 @@ if (empty($salesData)) {
 <div class="main">
     <h1>Sales Prediction</h1>
 
+    <!-- Forecast Cards -->
     <div class="cards">
         <?php foreach ($predictions as $product => $data): ?>
             <div class="card">
@@ -62,6 +72,7 @@ if (empty($salesData)) {
         <?php endforeach; ?>
     </div>
 
+    <!-- Charts -->
     <div class="charts">
         <?php foreach ($salesData as $product => $data):
             $labels = $data['labels'] ?? [$predictions[$product]['labels'][0]];
@@ -76,10 +87,10 @@ if (empty($salesData)) {
                     data: {
                         labels: [...<?= json_encode($labels) ?>, ...<?= json_encode($predLabels) ?>],
                         datasets: [{
-                                label: 'Actual Sales (<?= addslashes($product) ?>)',
+                                label: 'Actual Sales',
                                 data: <?= json_encode($values) ?>,
                                 borderColor: 'blue',
-                                backgroundColor: 'rgba(255,255,255,1)',
+                                backgroundColor: 'rgba(255,255,255,0.5)', // semi-transparent white fill under the line
                                 fill: true,
                                 tension: 0.3
                             },
@@ -88,13 +99,23 @@ if (empty($salesData)) {
                                 data: [...Array(<?= count($values) ?>).fill(null), ...<?= json_encode($predValues) ?>],
                                 borderColor: 'orange',
                                 borderDash: [5, 5],
-                                backgroundColor: 'rgba(255,255,255,1)',
+                                backgroundColor: 'rgba(255,255,255,0.5)', // semi-transparent fill
                                 fill: true,
                                 tension: 0.3
                             }
                         ]
+
                     },
                     options: {
+                        plugins: {
+                            legend: {
+                                display: true
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false
+                            }
+                        },
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
@@ -102,14 +123,28 @@ if (empty($salesData)) {
                                 beginAtZero: true
                             }
                         },
+                        layout: {
+                            padding: 10
+                        },
                         plugins: {
-                            legend: {
-                                display: true
+                            beforeDraw: (chart) => {
+                                const ctx = chart.ctx;
+                                ctx.save();
+                                ctx.globalCompositeOperation = 'destination-over';
+                                ctx.fillStyle = '#fff';
+                                ctx.fillRect(0, 0, chart.width, chart.height);
+                                ctx.restore();
                             }
                         }
                     }
+
                 });
             </script>
         <?php endforeach; ?>
+    </div>
+
+    <!-- Overall Growth -->
+    <div class="overall-growth">
+        <h2>Overall Sales Growth Prediction: <?= $salesPredictionPercent ?>%</h2>
     </div>
 </div>

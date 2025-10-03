@@ -21,6 +21,22 @@
     /* font-size: 24px; */
 }
 
+.status-available {
+    color: #065f46;   
+    font-weight: 600;
+}
+
+.status-low {
+    color: #b45309;     
+    font-weight: 600;
+}
+
+.status-out {
+    color: #991b1b;    
+    font-weight: 600;
+}
+
+
 .table-container {
     background: var(--white);
     border-radius: 8px;
@@ -31,6 +47,39 @@
 table {
     width: 100%;
     border-collapse: collapse;
+}
+
+.table-container td img {
+    width: 50px;        
+    height: 50px;       
+    object-fit: cover;  
+    border-radius: 6px;
+    transition: transform 0.2s ease;
+}
+
+table td img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--whiteThree);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+table td img:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.table-container td img:hover {
+    transform: scale(1.5); /* slightly enlarge on hover */
+    z-index: 10;
+    position: relative;
+}
+
+table tbody tr:hover {
+    background: #f4f6f8;
+    transition: background 0.2s ease;
 }
 
 th,td {
@@ -107,6 +156,38 @@ th a:hover {
     color: var(--smokey);
 }
 
+.filter-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.category-filter {
+    padding: 8px 30px 8px 12px; 
+    border-radius: 20px;
+    border: 1px solid var(--whiteThree);
+    background: var(--white);
+    cursor: pointer;
+    font-size: 14px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.filter-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--smokey);
+    font-size: 14px;
+}
+
+.category-filter option {
+    font-size: 14px;
+}
+
 .actions button {
     border: none;
     padding: 6px 10px;
@@ -116,8 +197,20 @@ th a:hover {
     font-size: 14px;
 }
 
+.actions button,
+.actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 10px;
+    font-size: 14px;
+    border-radius: 5px;
+    text-decoration: none;
+}
+
 .edit-btn {
-    background: var(--blue);
+    background: var(--smokey);
     color: var(--white);
 }
 
@@ -131,6 +224,14 @@ th a:hover {
     background: #ef4444;
     color: var(--white);
     text-decoration: none;
+}
+
+.edit-btn:hover {
+    opacity: 0.9;
+}
+
+.delete-btn:hover {
+    opacity: 0.9;
 }
 
 .add-btn {

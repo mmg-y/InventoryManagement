@@ -80,6 +80,12 @@ while ($row = $supplierStats->fetch_assoc()) {
     $supplierLabels[] = $row['name'];
     $supplierValues[] = $row['total_orders'];
 }
+
+// --- fallback if no suppliers ---
+if (empty($supplierLabels)) {
+    $supplierLabels = ['No Data'];
+    $supplierValues = [1];
+}
 ?>
 
 <!DOCTYPE html>
