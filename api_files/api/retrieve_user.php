@@ -4,13 +4,13 @@
     header('Content-Type: application/json');
     header('Access-Control-Allow-Methods: POST');
     header('Access-Control-Allow-Headers: Access-Control-Allow-Headers,Content-Type,Access-Control-Allow-Methods, Authorization, X-Requested-With');
-    error_reporting(0);        // suppress PHP warnings/notices
+    error_reporting(0);        
     ini_set('display_errors', 0);
 
     // include files
     include_once('../includes/config.php');
     include_once('../core/initialize.php');
-    include_once('../core/super_market.php'); // class with secure login()
+    include_once('../core/super_market.php'); 
 
     // instantiate SuperMarket
     $sm = new SuperMarket($conn);
