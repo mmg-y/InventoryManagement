@@ -74,12 +74,6 @@ foreach ($notifications as $note) {
                 <li class="<?= ($_GET['page'] ?? '') === 'supplier' ? 'active' : '' ?>">
                     <a href="?page=supplier"><i class="fa-solid fa-user-plus"></i> Add Supplier</a>
                 </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'product_inventory' ? 'active' : '' ?>">
-                    <a href="?page=product_inventory"><i class="fa-solid fa-boxes-stacked"></i> Products & Inventory</a>
-                </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'supplier_purchases' ? 'active' : '' ?>">
-                    <a href="?page=supplier_purchases"><i class="fa-solid fa-truck"></i> Supplier Purchases</a>
-                </li>
                 <li class="<?= ($_GET['page'] ?? '') === 'sales_record' ? 'active' : '' ?>">
                     <a href="?page=sales_record"><i class="fa-solid fa-receipt"></i> Sales Record</a>
                 </li>
@@ -158,12 +152,6 @@ foreach ($notifications as $note) {
                         break;
                     case 'supplier':
                         include 'supplier.php';
-                        break;
-                    case 'product_inventory':
-                        include 'product_inventory.php';
-                        break;
-                    case 'supplier_purchases':
-                        include 'supplier_purchases.php';
                         break;
                     case 'sales_record':
                         include 'sales_record.php';

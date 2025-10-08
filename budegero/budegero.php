@@ -8,7 +8,6 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,24 +15,38 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
     <link rel="stylesheet" href="../css/budegero.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Remove blue underline from sidebar links */
+        .sidebar a {
+            text-decoration: none;
+            color: inherit;
+        }
+        .sidebar a:visited,
+        .sidebar a:active {
+            color: inherit;
+        }
+    </style>
 </head>
-
 <body>
-
     <aside class="sidebar">
-        <h2>Bodegero</h2>
-        <ul class="menu">
-            <li class="active"><i class="fa-solid fa-truck-ramp-box"></i>Dashboard</li>
-            <li><i class="fa-solid fa-boxes-stacked"></i>Product & Inventory</li>
-            <li><i class="fa-solid fa-shop"></i>Supplier Purchases</li>
-        </ul>
-        <div class="settings">
-            <li><i class="fa-solid fa-gear"></i> Settings</li>
+        <div class="logo">
+            <img src="../images/logo-b.png" alt="Logo">
+            <span>IMS</span>
         </div>
+        <ul class="menu">
+            <li class="<?= (!isset($_GET['page']) || $_GET['page'] === 'dashboard') ? 'active' : '' ?>">
+                <a href="?page=dashboard"><i class="fa-solid fa-truck-ramp-box"></i> Dashboard</a>
+            </li>
+            <li class="<?= ($_GET['page'] ?? '') === 'product_inventory' ? 'active' : '' ?>">
+                <a href="?page=product_inventory"><i class="fa-solid fa-boxes-stacked"></i> Products & Inventory</a>
+            </li>
+            <li class="<?= ($_GET['page'] ?? '') === 'supplier_purchases' ? 'active' : '' ?>">
+                <a href="?page=supplier_purchases"><i class="fa-solid fa-truck"></i> Supplier Purchases</a>
+            </li>
+        </ul>
     </aside>
 
     <main class="main">
-        <h1 class="page-title">Bodegero Dashboard</h1>
         <header class="topbar">
             <div class="search-bar">
                 <input type="text" placeholder="Search...">
@@ -62,83 +75,41 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
             </div>
         </header>
 
-        <section class="content">
-            <div class="cards">
-                <div class="card">
-                    <h3>Total Products</h3>
-                    <p>120</p>
-                </div>
-                <div class="card">
-                    <h3>Inventory Value</h3>
-                    <p>₱250,000</p>
-                </div>
-                <div class="card">
-                    <h3>Pending Purchases</h3>
-                    <p>8</p>
-                </div>
-                <div class="card">
-                    <h3>Completed Purchases</h3>
-                    <p>150</p>
-                </div>
-            </div>
-
-            <div class="charts">
-                <div class="chart">
-                    <h3>Stock Levels</h3><canvas id="stockChart"></canvas>
-                </div>
-                <div class="chart">
-                    <h3>Purchases Overview</h3><canvas id="purchaseChart"></canvas>
-                </div>
-            </div>
-
-            <div class="tables">
-                <div class="table">
-                    <h3>Recent Activity</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Activity</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>2025-09-20</td>
-                                <td>Purchased from Supplier A</td>
-                                <td>Completed</td>
-                            </tr>
-                            <tr>
-                                <td>2025-09-19</td>
-                                <td>Added new product</td>
-                                <td>Success</td>
-                            </tr>
-                            <tr>
-                                <td>2025-09-18</td>
-                                <td>Inventory updated</td>
-                                <td>Success</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
+        <!-- PAGE CONTENT AREA -->
+        <div class="page-content">
+            <?php
+            if (isset($_GET['page'])) {
+                $page = $_GET['page'];
+                switch ($page) {
+                    case 'product_inventory':
+                        include 'product_inventory.php';
+                        break;
+                    case 'supplier_purchases':
+                        include 'supplier_purchases.php';
+                        break;
+                    case 'dashboard':
+                    default:
+                        include 'dashboard.php'; // bodegero-specific dashboard
+                        break;
+                }
+            } else {
+                include 'dashboard.php';
+            }
+            ?>
+        </div>
     </main>
 
-    <!-- Change Profile Modal -->
+    <!-- PROFILE MODAL -->
     <div id="profileModal" class="modal" aria-hidden="true">
         <div class="modal-content">
             <span class="close-btn" id="closeProfile" aria-label="Close">&times;</span>
             <h2>Edit Profile</h2>
 
-            <!-- show messages -->
             <?php if (isset($_SESSION['success'])): ?>
-                <div class="alert success"><?= $_SESSION['success'];
-                                            unset($_SESSION['success']); ?></div>
+                <div class="alert success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
             <?php endif; ?>
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert error"><?= $_SESSION['error'];
-                                            unset($_SESSION['error']); ?></div>
+                <div class="alert error"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
             <?php endif; ?>
 
             <form action="update_profile_budegero.php" method="POST" enctype="multipart/form-data" id="profileForm">
@@ -178,77 +149,40 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
     </div>
 
     <script>
-        new Chart(document.getElementById('stockChart'), {
-            type: 'bar',
-            data: {
-                labels: ['Item A', 'Item B', 'Item C', 'Item D', 'Item E'],
-                datasets: [{
-                    label: 'Stock Level',
-                    data: [30, 50, 20, 15, 40]
-                }]
-            }
-        });
-        new Chart(document.getElementById('purchaseChart'), {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-                datasets: [{
-                    label: 'Purchases',
-                    data: [5, 8, 6, 10, 7]
-                }]
-            }
-        });
-
-        // Profile dropdown toggle
         const profile = document.getElementById("profileMenu");
-        profile.addEventListener("click", () => {
-            profile.classList.toggle("active");
-        });
-        document.addEventListener("click", (e) => {
-            if (!profile.contains(e.target)) profile.classList.remove("active");
-        });
+        profile.addEventListener("click", () => profile.classList.toggle("active"));
+        document.addEventListener("click", (e) => { if (!profile.contains(e.target)) profile.classList.remove("active"); });
 
-        // Modal
-        const profileLink = document.querySelector('#dropdownMenu a[href="#profile"]');
+        const profileLink = document.getElementById('profileLink');
         const profileModal = document.getElementById('profileModal');
         const closeProfile = document.getElementById('closeProfile');
         const profilePicInput = document.getElementById('profilePicInput');
         const profilePreview = document.getElementById('profilePreview');
 
-        if (profileLink) {
-            profileLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                profileModal.style.display = 'flex';
-                profileModal.setAttribute('aria-hidden', 'false');
-            });
-        }
+        profileLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            profileModal.style.display = 'flex';
+            profileModal.setAttribute('aria-hidden', 'false');
+        });
+
         closeProfile.addEventListener('click', () => {
             profileModal.style.display = 'none';
             profileModal.setAttribute('aria-hidden', 'true');
         });
+
         window.addEventListener('click', (e) => {
             if (e.target === profileModal) {
                 profileModal.style.display = 'none';
                 profileModal.setAttribute('aria-hidden', 'true');
             }
         });
+
         if (profilePicInput && profilePreview) {
             profilePicInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) profilePreview.src = URL.createObjectURL(file);
             });
         }
-
-        // auto-open if server requested
-        <?php if (!empty($_SESSION['open_profile_modal'])): ?>
-            document.addEventListener('DOMContentLoaded', function() {
-                profileModal.style.display = 'flex';
-                profileModal.setAttribute('aria-hidden', 'false');
-            });
-        <?php unset($_SESSION['open_profile_modal']);
-        endif; ?>
     </script>
-
 </body>
-
 </html>

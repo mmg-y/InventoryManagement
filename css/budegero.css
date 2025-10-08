@@ -25,6 +25,23 @@ body {
     display: flex;
 }
 
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    color: var(--smokey);
+}
+
+.logo img {
+    max-width: 40px;
+    height: auto;
+    display: block;
+}
+
 .container {
     display: flex;
     min-height: 100vh;
@@ -37,13 +54,14 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
     padding: 20px 0;
     position: fixed;
     left: 0;
     top: 0;
     overflow: hidden;
 }
+
 
 .sidebar h2 {
     text-align: center;
@@ -69,7 +87,9 @@ body {
 .menu li i {
     margin-right: 20px;
     font-size: 18px;
+    
 }
+
 
 .menu li.active,
 .menu li:hover {
