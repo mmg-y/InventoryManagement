@@ -79,14 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     exit;
                 } else {
-                    $loginMessage = "❌ Invalid password!";
+                    $loginMessage = "Invalid password!";
                 }
             } else {
-                $loginMessage = "❌ No account found!";
+                $loginMessage = "No account found!";
             }
             $stmt->close();
         } else {
-            $loginMessage = "❌ Please fill in all login fields!";
+            $loginMessage = "Please fill in all login fields!";
         }
     }
 }

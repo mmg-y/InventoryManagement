@@ -65,11 +65,18 @@ foreach ($notifications as $note) {
                 <li class="<?= (!isset($_GET['page']) || $_GET['page'] === 'dashboard') ? 'active' : '' ?>">
                     <a href="?page=dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
                 </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'add_user' ? 'active' : '' ?>">
-                    <a href="?page=add_user"><i class="fa-solid fa-user-shield"></i> Add User</a>
-                </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'user_roles' ? 'active' : '' ?>">
-                    <a href="?page=user_roles"><i class="fa-solid fa-user-shield"></i> User Roles</a>
+
+                <!-- User Dropdown -->
+                <li class="submenu">
+                    <a><i class="fa-solid fa-users"></i> User Management <i class="fa-solid fa-chevron-down arrow"></i></a>
+                    <ul class="submenu-items">
+                        <li class="<?= ($_GET['page'] ?? '') === 'add_user' ? 'active' : '' ?>">
+                            <a href="?page=add_user"><i class="fa-solid fa-user-plus"></i> Add User</a>
+                        </li>
+                        <li class="<?= ($_GET['page'] ?? '') === 'user_roles' ? 'active' : '' ?>">
+                            <a href="?page=user_roles"><i class="fa-solid fa-user-shield"></i> User Roles</a>
+                        </li>
+                    </ul>
                 </li>
                 <li class="<?= ($_GET['page'] ?? '') === 'supplier' ? 'active' : '' ?>">
                     <a href="?page=supplier"><i class="fa-solid fa-user-plus"></i> Add Supplier</a>
@@ -92,6 +99,7 @@ foreach ($notifications as $note) {
             </li>
         </ul>
     </aside>
+
 
 
     <main class="main">
@@ -326,6 +334,25 @@ foreach ($notifications as $note) {
             });
         });
     </script>
+
+    <script>
+        // Toggle submenu on click
+        document.querySelectorAll(".submenu > a").forEach(menu => {
+            menu.addEventListener("click", function(e) {
+                e.preventDefault(); // stop page jump if <a href="#">
+                this.parentElement.classList.toggle("open");
+            });
+        });
+
+        // Auto-open submenu if one of its children has class "active"
+        document.querySelectorAll(".submenu").forEach(sub => {
+            if (sub.querySelector(".submenu-items li.active")) {
+                sub.classList.add("open");
+            }
+        });
+    </script>
+
+
 
 </body>
 

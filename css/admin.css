@@ -46,7 +46,7 @@ body {
 
 
 .sidebar {
-    width: 260px;
+    width: 320px;
     height: 100vh;
     background: var(--white);
     border-right: 1px solid var(--whiteTwo);
@@ -98,6 +98,106 @@ body {
     color: var(--white); 
 }
 
+.sidebar .menu .submenu {
+  /* position: relative;
+  width: 100%; */
+  display: block;  
+}
+
+.sidebar .menu .submenu > a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--darkGray);
+  text-decoration: none;
+  cursor: pointer;
+justify-content: flex-start;
+}
+
+.sidebar .menu .submenu > a .arrow {
+  margin-left: auto;
+  transition: transform 0.3s ease; 
+  font-size: 0.8rem;
+  color: var(--lightGray);
+}
+
+.sidebar .menu .submenu .submenu-items {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  background: var(--white);
+  position: relative;
+  transition: max-height 0.35s ease, opacity 0.35s ease;
+}
+
+.sidebar .menu .submenu .submenu-items li {
+  /* display: block; */
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.sidebar .menu .submenu .submenu-items li a {
+  padding-left: 45px;      
+  display: block;
+  color: var(--lightGray);
+}
+
+.sidebar .menu .submenu.open .submenu-items li {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sidebar .menu .submenu .submenu-items li a:hover,
+.sidebar .menu .submenu .submenu-items li.active a {
+  background: var(--smokey);
+  color: var(--white);
+}
+
+.sidebar .menu .submenu.open .submenu-items {
+  /* display: block;   */
+  max-height: 500px;
+  opacity: 1;
+}
+
+.sidebar .menu .submenu.open > a .arrow {
+  transform: rotate(180deg);
+  color: var(--white);
+}
+
+.sidebar .menu .submenu.open > a {
+  background: var(--smokey);
+  color: var(--white);
+}
+
+.sidebar .menu .submenu .submenu-items li a:hover {
+    background: var(--smokey);
+    color: var(--white);
+}
+
+.sidebar .menu .submenu.open .submenu-items li:nth-child(1) {
+    transition-delay: 0.05s;
+}
+
+.sidebar .menu .submenu.open .submenu-items li:nth-child(2) {
+    transition-delay: 0.1s;
+}
+
+.sidebar .menu .submenu.open .submenu-items li:nth-child(3) {
+    transition-delay: 0.15s;
+}
+
+.sidebar .menu .submenu.open .submenu-items li:nth-child(4) {
+    transition-delay: 0.2s;
+}
 
 .menu {
     list-style: none;
