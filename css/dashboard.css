@@ -33,6 +33,27 @@
      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
  }
 
+.card h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;          
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    color: var(--blue);
+    font-weight: 600;
+}
+
+.card h3 i {
+    color: var(--blue);
+    font-size: 1.4rem;
+}
+
+.card p{
+    font-weight: 500;
+    font-size: 1.4rem;
+    
+}
+
  .charts {
      display: flex;
      flex-direction: column;

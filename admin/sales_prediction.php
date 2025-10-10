@@ -3,13 +3,13 @@ include '../config.php';
 
 // GET PRODUCT SALES HISTORY 
 $sql = "
-    SELECT p.product_name, DATE(c.created_at) as sale_date, SUM(ci.qty) as total_qty
-    FROM cart_items ci
-    JOIN product p ON ci.product_id = p.product_id
-    JOIN carts c ON ci.cart_id = c.cart_id
-    WHERE c.status = 'completed'
-    GROUP BY p.product_id, DATE(c.created_at)
-    ORDER BY p.product_name, sale_date ASC
+ SELECT p.product_name, DATE(c.created_at) as sale_date, SUM(ci.qty) as total_qty
+ FROM cart_items ci
+ JOIN product p ON ci.product_id = p.product_id
+ JOIN carts c ON ci.cart_id = c.cart_id
+ WHERE c.status = 'completed'
+ GROUP BY p.product_id, DATE(c.created_at)
+ ORDER BY p.product_name, sale_date ASC
 ";
 $result = $conn->query($sql);
 
@@ -24,19 +24,24 @@ $window = 7;
 $predictions = [];
 
 foreach ($salesData as $product => $data) {
-    $values = $data['values'];
+
+    $historical_values = $data['values'];
     $lastDate = end($data['labels']) ?: date('Y-m-d');
     $date = new DateTime($lastDate);
 
+    $start_index = count($historical_values);
+
     for ($i = 1; $i <= 7; $i++) {
-        $slice = array_slice($values, -$window);
+
+        $start = max(0, $start_index - $window);
+
+        $slice = array_slice($historical_values, $start, $window);
+
         $avg = !empty($slice) ? array_sum($slice) / count($slice) : 0;
 
         $date->modify('+1 day');
         $predictions[$product]['labels'][] = $date->format('Y-m-d');
         $predictions[$product]['values'][] = round($avg, 2);
-
-        $values[] = $avg;
     }
 }
 
@@ -46,14 +51,69 @@ if (empty($salesData)) {
     $predictions['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
 }
 
-// Calculate overall 7-day sales growth for dashboard 
-$totalActual = 0;
-$totalPredicted = 0;
-foreach ($salesData as $product => $data) {
-    $totalActual += array_sum($data['values']);
-    $totalPredicted += array_sum($predictions[$product]['values']);
+// --- NEW AGGREGATION LOGIC FOR SINGLE CHART ---
+
+$allDates = [];
+// Collect all unique dates from historical sales and predictions
+foreach ($salesData as $data) {
+    $allDates = array_merge($allDates, $data['labels']);
 }
-$salesPredictionPercent = $totalActual > 0 ? round(($totalPredicted - $totalActual) / $totalActual * 100, 2) : 0;
+foreach ($predictions as $data) {
+    $allDates = array_merge($allDates, $data['labels']);
+}
+$combinedLabels = array_values(array_unique($allDates));
+sort($combinedLabels);
+
+$totalActualSalesData = [];
+$totalPredictedSalesData = [];
+$firstPredictionDate = date('Y-m-d', strtotime('+1 day', strtotime(end($salesData[array_key_first($salesData)]['labels'])))); // Use the last date of the first product as a reference
+
+foreach ($combinedLabels as $date) {
+    $actualSum = 0;
+    $predictionSum = 0;
+
+    // Sum actual sales for this date across all products
+    foreach ($salesData as $product => $data) {
+        $key = array_search($date, $data['labels']);
+        if ($key !== false) {
+            $actualSum += $data['values'][$key];
+        }
+    }
+    $totalActualSalesData[] = $actualSum;
+
+    // Sum predicted sales for this date across all products
+    // Note: Predictions only start AFTER the historical data ends
+    if ($date >= $firstPredictionDate) {
+        foreach ($predictions as $product => $data) {
+            $key = array_search($date, $data['labels']);
+            if ($key !== false) {
+                $predictionSum += $data['values'][$key];
+            }
+        }
+        $totalPredictedSalesData[] = $predictionSum;
+    } else {
+        // Pad historical dates with 'null' so the prediction line starts correctly
+        $totalPredictedSalesData[] = null;
+    }
+}
+// ---------------------------------------------
+
+
+// Calculate overall 7-day sales growth for dashboard 
+$totalPredicted = 0;
+$totalLastSevenDays = 0;
+
+foreach ($salesData as $product => $data) {
+
+    $totalPredicted += array_sum($predictions[$product]['values']);
+
+    $lastSeven = array_slice($data['values'], -7);
+    $totalLastSevenDays += array_sum($lastSeven);
+}
+
+$salesPredictionPercent = $totalLastSevenDays > 0
+    ? round(($totalPredicted - $totalLastSevenDays) / $totalLastSevenDays * 100, 2)
+    : 0;
 ?>
 
 <link rel="stylesheet" href="../css/sales_prediction.css">
@@ -62,7 +122,6 @@ $salesPredictionPercent = $totalActual > 0 ? round(($totalPredicted - $totalActu
 <div class="main">
     <h1>Sales Prediction</h1>
 
-    <!-- Forecast Cards -->
     <div class="cards">
         <?php foreach ($predictions as $product => $data): ?>
             <div class="card">
@@ -72,78 +131,73 @@ $salesPredictionPercent = $totalActual > 0 ? round(($totalPredicted - $totalActu
         <?php endforeach; ?>
     </div>
 
-    <!-- Charts -->
     <div class="charts">
-        <?php foreach ($salesData as $product => $data):
-            $labels = $data['labels'] ?? [$predictions[$product]['labels'][0]];
-            $values = $data['values'] ?? [0];
-            $predLabels = $predictions[$product]['labels'] ?? [$labels[0]];
-            $predValues = $predictions[$product]['values'] ?? [0];
-        ?>
-            <canvas id="chart_<?= md5($product) ?>"></canvas>
-            <script>
-                new Chart(document.getElementById("chart_<?= md5($product) ?>"), {
-                    type: 'line',
-                    data: {
-                        labels: [...<?= json_encode($labels) ?>, ...<?= json_encode($predLabels) ?>],
-                        datasets: [{
-                                label: 'Actual Sales',
-                                data: <?= json_encode($values) ?>,
-                                borderColor: 'blue',
-                                backgroundColor: 'rgba(255,255,255,0.5)', // semi-transparent white fill under the line
-                                fill: true,
-                                tension: 0.3
-                            },
-                            {
-                                label: 'Predicted Sales',
-                                data: [...Array(<?= count($values) ?>).fill(null), ...<?= json_encode($predValues) ?>],
-                                borderColor: 'orange',
-                                borderDash: [5, 5],
-                                backgroundColor: 'rgba(255,255,255,0.5)', // semi-transparent fill
-                                fill: true,
-                                tension: 0.3
-                            }
-                        ]
+        <canvas id="aggregatedSalesChart" style="width: 100%; height: 400px;"></canvas>
+        <script>
+            const labels = <?= json_encode($combinedLabels) ?>;
+            const actualData = <?= json_encode($totalActualSalesData) ?>;
+            const predictedData = <?= json_encode($totalPredictedSalesData) ?>;
 
-                    },
-                    options: {
-                        plugins: {
-                            legend: {
-                                display: true
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false
-                            }
+            new Chart(document.getElementById("aggregatedSalesChart"), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                            label: 'Total Actual Sales',
+                            data: actualData,
+                            borderColor: 'blue',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)', // Light blue fill
+                            fill: true,
+                            tension: 0.3
                         },
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        },
-                        layout: {
-                            padding: 10
-                        },
-                        plugins: {
-                            beforeDraw: (chart) => {
-                                const ctx = chart.ctx;
-                                ctx.save();
-                                ctx.globalCompositeOperation = 'destination-over';
-                                ctx.fillStyle = '#fff';
-                                ctx.fillRect(0, 0, chart.width, chart.height);
-                                ctx.restore();
-                            }
+                        {
+                            label: 'Total Predicted Sales',
+                            data: predictedData,
+                            borderColor: 'orange',
+                            borderDash: [5, 5],
+                            backgroundColor: 'transparent', // No fill for predicted line
+                            fill: false,
+                            tension: 0.3
                         }
-                    }
+                    ]
 
-                });
-            </script>
-        <?php endforeach; ?>
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Total Sales: Actual vs. Predicted'
+                        },
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        beforeDraw: (chart) => {
+                            const ctx = chart.ctx;
+                            ctx.save();
+                            ctx.globalCompositeOperation = 'destination-over';
+                            ctx.fillStyle = '#fff';
+                            ctx.fillRect(0, 0, chart.width, chart.height);
+                            ctx.restore();
+                        }
+                    },
+
+                }
+
+            });
+        </script>
     </div>
 
-    <!-- Overall Growth -->
     <div class="overall-growth">
         <h2>Overall Sales Growth Prediction: <?= $salesPredictionPercent ?>%</h2>
     </div>

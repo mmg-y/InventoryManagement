@@ -36,7 +36,7 @@ foreach ($notifications as $note) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMS - Staff Page</title>
+    <title>IMS - Staff Dashboard</title>
     <link rel="stylesheet" href="../css/staff.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -48,24 +48,24 @@ foreach ($notifications as $note) {
     <aside class="sidebar">
         <div>
             <div class="logo">
-                <img src="../images/logo-b.png" alt="Logo">
+                <img src="../images/logo-bl.png" alt="Logo">
                 <span>IMS</span>
             </div>
             <ul class="menu">
                 <li class="<?= (!isset($_GET['page']) || $_GET['page'] === 'dashboard') ? 'active' : '' ?>">
-                    <a href="?page=dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+                    <a href="?page=dashboard"><i class="fa-solid fa-cart-plus"></i> Dashboard</a>
                 </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'pos' ? 'active' : '' ?>">
+                <li class="<?= ($_GET['page'] ?? '') === 'analytics_report' ? 'active' : '' ?>">
+                    <a href="?page=analytics_report"><i class="fa-solid fa-chart-pie"></i> Analytics & Reports</a>
+                </li>
+                <!-- <li class="<?= ($_GET['page'] ?? '') === 'pos' ? 'active' : '' ?>">
                     <a href="?page=pos"><i class="fa-solid fa-cart-plus"></i> POS</a>
-                </li>
+                </li> -->
                 <li class="<?= ($_GET['page'] ?? '') === 'product_inventory' ? 'active' : '' ?>">
                     <a href="?page=product_inventory"><i class="fa-solid fa-boxes-stacked"></i> Products & Inventory</a>
                 </li>
                 <li class="<?= ($_GET['page'] ?? '') === 'sales_record' ? 'active' : '' ?>">
                     <a href="?page=sales_record"><i class="fa-solid fa-clipboard"></i> Sales Record</a>
-                </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'analytics_report' ? 'active' : '' ?>">
-                    <a href="?page=analytics_report"><i class="fa-solid fa-chart-pie"></i> Analytics & Reports</a>
                 </li>
             </ul>
         </div>
@@ -82,8 +82,12 @@ foreach ($notifications as $note) {
 
         <div class="topbar">
             <div class="search">
-                <input type="text" placeholder="Search...">
+                <form method="get" action="">
+                    <input type="hidden" name="page" value="dashboard">
+                    <input type="text" name="q" placeholder="Search..." value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
+                </form>
             </div>
+
 
             <div class="topbar-right">
 
@@ -126,9 +130,9 @@ foreach ($notifications as $note) {
             <?php
             $page = $_GET['page'] ?? 'dashboard';
             switch ($page) {
-                case 'pos':
-                    include 'pos.php';
-                    break;
+                // case 'pos':
+                //     include 'pos.php';
+                //     break;
                 case 'product_inventory':
                     include 'product_inventory.php';
                     break;

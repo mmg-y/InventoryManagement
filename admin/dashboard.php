@@ -164,27 +164,27 @@ if (empty($salesData)) {
 
 <div class="cards">
     <div class="card">
-        <h3>Total Users</h3>
+        <h3><i class="fas fa-users"></i> Total Users</h3>
         <p><?= number_format($userCount) ?></p>
     </div>
     <div class="card">
-        <h3>Total Products</h3>
+        <h3><i class="fas fa-boxes"></i> Total Products</h3>
         <p><?= number_format($productCount) ?></p>
     </div>
     <div class="card">
-        <h3>Purchases</h3>
+        <h3><i class="fas fa-shopping-cart"></i> Purchases</h3>
         <p><?= number_format($purchaseCount) ?></p>
     </div>
     <div class="card">
-        <h3>Sales Revenue</h3>
+        <h3><i class="fas fa-coins"></i> Sales Revenue</h3>
         <p>₱<?= number_format($salesRevenue, 2) ?></p>
     </div>
     <div class="card">
-        <h3>Sales Prediction</h3>
+        <h3><i class="fas fa-chart-line"></i> Sales Prediction</h3>
         <p>Revenue growth (last 7 days vs previous 7 days): <strong><?= $salesPrediction ?></strong></p>
     </div>
-
 </div>
+
 
 <div class="charts">
     <!-- Top row: Sales Trend Line -->

@@ -24,6 +24,27 @@ h1 {
     font-size: 27px;
 }
 
+.card h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;           /* space between icon and text */
+    color: var(--blue);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.card h3 i {
+    font-size: 1.4rem;
+    color: var(--blue);
+}
+
+
+.card p {
+    color: var(--smokey);
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
  .charts {
      display: flex;
      flex-direction: column;

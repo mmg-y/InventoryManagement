@@ -58,7 +58,7 @@
 }
 
 .save-btn {
-    background: var(--smokey);
+    background: var(--blue);
     color: var(--white);
     border: none;
     padding: 10px 15px;

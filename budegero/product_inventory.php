@@ -171,218 +171,218 @@ $result = $conn->query("
 </head>
 
 <body>
-        <h1 class="page-title">Products & Inventory</h1>
+    <h1 class="page-title">Products & Inventory</h1>
 
-        <?php if (isset($_GET['msg'])): ?>
-            <div class="alert <?= ($_GET['msg'] == 'added' || $_GET['msg'] == 'updated') ? 'success' : ($_GET['msg'] == 'deleted' ? 'danger' : 'error') ?>">
-                <?php
-                if ($_GET['msg'] == 'added') echo "Product added successfully!";
-                elseif ($_GET['msg'] == 'updated') echo "Product updated successfully!";
-                elseif ($_GET['msg'] == 'deleted') echo "Product deleted successfully!";
-                elseif ($_GET['msg'] == 'error' && isset($_GET['details'])) echo "⚠️ " . htmlspecialchars($_GET['details']);
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <div class="actions-bar">
-            <form method="GET" class="search-form">
-                <input type="hidden" name="page" value="product_inventory">
-                <input type="text" name="search" placeholder="Search by code or name..." value="<?= htmlspecialchars($search) ?>">
-                <button type="submit"><i class="fa fa-search"></i></button>
-                <div class="filter-wrapper">
-                    <select name="category_filter" onchange="this.form.submit()" class="category-filter">
-                        <option value="0">Categories</option>
-                        <?php
-                        $categories->data_seek(0);
-                        while ($cat = $categories->fetch_assoc()):
-                            $selected = ($filter_category == $cat['category_id']) ? 'selected' : '';
-                        ?>
-                            <option value="<?= $cat['category_id'] ?>" <?= $selected ?>><?= htmlspecialchars($cat['category_name']) ?></option>
-                        <?php endwhile; ?>
-                    </select>
-                    <i class="fa fa-filter filter-icon"></i>
-                </div>
-            </form>
-
-            <button class="add-btn"><i class="fa-solid fa-plus"></i> Add Product</button>
+    <?php if (isset($_GET['msg'])): ?>
+        <div class="alert <?= ($_GET['msg'] == 'added' || $_GET['msg'] == 'updated') ? 'success' : ($_GET['msg'] == 'deleted' ? 'danger' : 'error') ?>">
+            <?php
+            if ($_GET['msg'] == 'added') echo "Product added successfully!";
+            elseif ($_GET['msg'] == 'updated') echo "Product updated successfully!";
+            elseif ($_GET['msg'] == 'deleted') echo "Product deleted successfully!";
+            elseif ($_GET['msg'] == 'error' && isset($_GET['details'])) echo "⚠️ " . htmlspecialchars($_GET['details']);
+            ?>
         </div>
+    <?php endif; ?>
 
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <?php
-                        $columns = [
-                            'product_id' => 'ID',
-                            'product_code' => 'Code',
-                            'product_picture' => 'Picture',
-                            'product_name' => 'Name',
-                            'category' => 'Category',
-                            'quantity' => 'Quantity',
-                            'price' => 'Price',
-                            'notice_status' => 'Status',
-                            'threshold' => 'Threshold'
-                        ];
+    <div class="actions-bar">
+        <form method="GET" class="search-form">
+            <input type="hidden" name="page" value="product_inventory">
+            <input type="text" name="search" placeholder="Search by code or name..." value="<?= htmlspecialchars($search) ?>">
+            <button type="submit"><i class="fa fa-search"></i></button>
+            <div class="filter-wrapper">
+                <select name="category_filter" onchange="this.form.submit()" class="category-filter">
+                    <option value="0">Categories</option>
+                    <?php
+                    $categories->data_seek(0);
+                    while ($cat = $categories->fetch_assoc()):
+                        $selected = ($filter_category == $cat['category_id']) ? 'selected' : '';
+                    ?>
+                        <option value="<?= $cat['category_id'] ?>" <?= $selected ?>><?= htmlspecialchars($cat['category_name']) ?></option>
+                    <?php endwhile; ?>
+                </select>
+                <i class="fa fa-filter filter-icon"></i>
+            </div>
+        </form>
 
-                        foreach ($columns as $col => $label) {
-                            $indicator = ($sort == $col) ? ($order === 'ASC' ? '▲' : '▼') : '';
-                            $newOrder = ($sort == $col && $order === 'ASC') ? 'DESC' : 'ASC';
-                            echo "<th>
+        <button class="add-btn"><i class="fa-solid fa-plus"></i> Add Product</button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <?php
+                    $columns = [
+                        'product_id' => 'ID',
+                        'product_code' => 'Code',
+                        'product_picture' => 'Picture',
+                        'product_name' => 'Name',
+                        'category' => 'Category',
+                        'quantity' => 'Quantity',
+                        'price' => 'Price',
+                        'notice_status' => 'Status',
+                        'threshold' => 'Threshold'
+                    ];
+
+                    foreach ($columns as $col => $label) {
+                        $indicator = ($sort == $col) ? ($order === 'ASC' ? '▲' : '▼') : '';
+                        $newOrder = ($sort == $col && $order === 'ASC') ? 'DESC' : 'ASC';
+                        echo "<th>
             <a href='budegero.php?page=product_inventory&sort=$col&order=$newOrder&search=" . urlencode($search) . "&category_filter=$filter_category'>
                 <span class='sort-indicator'>$indicator</span> $label
             </a>
           </th>";
-                        }
-                        ?>
+                    }
+                    ?>
 
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if ($result->num_rows > 0): while ($row = $result->fetch_assoc()): ?>
-                            <tr>
-                                <td><?= $row['product_id'] ?></td>
-                                <td><?= $row['product_code'] ?></td>
-                                <td>
-                                    <?php if ($row['product_picture']): ?>
-                                        <img src="../<?= $row['product_picture'] ?>" alt="<?= htmlspecialchars($row['product_name']) ?>" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= $row['product_name'] ?></td>
-                                <td><?= $row['category_name'] ?></td>
-                                <td><?= $row['quantity'] ?></td>
-                                <td><?= $row['price'] ?></td>
-
-                                <?php $status_label = $row['status_label'] ?? 'available'; ?>
-                                <td class="<?php
-                                            if ($status_label == 'sufficient') echo 'status-available';
-                                            elseif ($status_label == 'low') echo 'status-low';
-                                            elseif ($status_label == 'out of stock') echo 'status-out';
-                                            elseif ($status_label == 'critical') echo 'status-critical';
-                                            ?>">
-                                    <?= ucfirst($status_label) ?>
-                                </td>
-
-                                <td><?= $row['threshold'] ?></td>
-                                <td class="actions">
-                                    <button class="edit-btn"
-                                        data-id="<?= $row['product_id'] ?>"
-                                        data-code="<?= $row['product_code'] ?>"
-                                        data-picture="<?= $row['product_picture'] ?>"
-                                        data-name="<?= $row['product_name'] ?>"
-                                        data-category="<?= $row['category_id'] ?>"
-                                        data-quantity="<?= $row['quantity'] ?>"
-                                        data-price="<?= $row['price'] ?>"
-                                        data-threshold="<?= $row['threshold'] ?>"
-                                        data-status="<?= $row['status_id'] ?>">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                            <a href="budegero.php?page=product_inventory&delete=<?= $row['product_id'] ?>" 
-                                            class="delete-btn" 
-                                            onclick="return confirm('Delete this product?')">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </a>
-                                </td>
-                            </tr>
-                        <?php endwhile;
-                    else: ?>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ($result->num_rows > 0): while ($row = $result->fetch_assoc()): ?>
                         <tr>
-                            <td colspan="10">No products found.</td>
+                            <td><?= $row['product_id'] ?></td>
+                            <td><?= $row['product_code'] ?></td>
+                            <td>
+                                <?php if ($row['product_picture']): ?>
+                                    <img src="../<?= $row['product_picture'] ?>" alt="<?= htmlspecialchars($row['product_name']) ?>" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">
+                                <?php endif; ?>
+                            </td>
+                            <td><?= $row['product_name'] ?></td>
+                            <td><?= $row['category_name'] ?></td>
+                            <td><?= $row['quantity'] ?></td>
+                            <td><?= $row['price'] ?></td>
+
+                            <?php $status_label = $row['status_label'] ?? 'available'; ?>
+                            <td class="<?php
+                                        if ($status_label == 'sufficient') echo 'status-available';
+                                        elseif ($status_label == 'low') echo 'status-low';
+                                        elseif ($status_label == 'out of stock') echo 'status-out';
+                                        elseif ($status_label == 'critical') echo 'status-critical';
+                                        ?>">
+                                <?= ucfirst($status_label) ?>
+                            </td>
+
+                            <td><?= $row['threshold'] ?></td>
+                            <td class="actions">
+                                <button class="edit-btn"
+                                    data-id="<?= $row['product_id'] ?>"
+                                    data-code="<?= $row['product_code'] ?>"
+                                    data-picture="<?= $row['product_picture'] ?>"
+                                    data-name="<?= $row['product_name'] ?>"
+                                    data-category="<?= $row['category_id'] ?>"
+                                    data-quantity="<?= $row['quantity'] ?>"
+                                    data-price="<?= $row['price'] ?>"
+                                    data-threshold="<?= $row['threshold'] ?>"
+                                    data-status="<?= $row['status_id'] ?>">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <a href="budegero.php?page=product_inventory&delete=<?= $row['product_id'] ?>"
+                                    class="delete-btn"
+                                    onclick="return confirm('Delete this product?')">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                            </td>
                         </tr>
-                    <?php endif; ?>
+                    <?php endwhile;
+                else: ?>
+                    <tr>
+                        <td colspan="10">No products found.</td>
+                    </tr>
+                <?php endif; ?>
 
-                </tbody>
-            </table>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination">
+        <?php for ($i = 1; $i <= $pages; $i++): ?>
+            <a href="?page=<?= $i ?>&sort=<?= $sort ?>&order=<?= $order ?>&search=<?= urlencode($search) ?>" class="<?= ($i == $page ? 'active' : '') ?>"><?= $i ?></a>
+        <?php endfor; ?>
+    </div>
+
+    <!-- Add Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeAdd">&times;</span>
+            <h2>Add Product</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="add_product" value="1">
+
+                <label>Product Code</label>
+                <input type="text" name="product_code" value="<?= $nextCode ?>" readonly>
+
+                <label>Product Picture</label>
+                <input type="file" name="product_picture" id="add_picture" accept="image/*">
+                <img id="add_picture_preview" src="" alt="Preview" style="display:none; width:80px; height:80px; border-radius:6px; object-fit:cover; margin-top:10px; border:1px solid #ccc;">
+
+                <label>Product Name</label>
+                <input type="text" name="product_name" required>
+
+                <label>Category</label>
+                <select name="category" id="add_category" required>
+                    <?php $categories->data_seek(0); ?>
+                    <?php while ($cat = $categories->fetch_assoc()): ?>
+                        <option value="<?= $cat['category_id'] ?>"><?= $cat['category_name'] ?></option>
+                    <?php endwhile; ?>
+                </select>
+
+                <label>Quantity</label>
+                <input type="number" name="quantity" required>
+
+                <label>Price</label>
+                <input type="number" step="0.01" name="price" required>
+
+                <label>Threshold</label>
+                <input type="number" name="threshold">
+
+                <button type="submit" class="save-btn">Add Product</button>
+            </form>
         </div>
+    </div>
 
-        <div class="pagination">
-            <?php for ($i = 1; $i <= $pages; $i++): ?>
-                <a href="?page=<?= $i ?>&sort=<?= $sort ?>&order=<?= $order ?>&search=<?= urlencode($search) ?>" class="<?= ($i == $page ? 'active' : '') ?>"><?= $i ?></a>
-            <?php endfor; ?>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeEdit">&times;</span>
+            <h2>Edit Product</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="update_product" value="1">
+                <input type="hidden" name="product_id" id="edit_id">
+                <label>Product Code</label>
+                <input type="text" name="product_code" id="edit_code" required>
+                <label>Product Picture</label>
+                <input type="file" name="product_picture" id="edit_picture" accept="image/*">
+                <img id="edit_picture_preview" src="" alt="Preview" style="display:none; width:80px; height:80px; border-radius:6px; object-fit:cover; margin-top:10px; border:1px solid #ccc;">
+                <label>Product Name</label>
+                <input type="text" name="product_name" id="edit_name" required>
+                <label>Category</label>
+                <select name="category" id="edit_category" required>
+                    <?php $categories->data_seek(0);
+                    while ($cat = $categories->fetch_assoc()): ?>
+                        <option value="<?= $cat['category_id'] ?>"><?= $cat['category_name'] ?></option>
+                    <?php endwhile; ?>
+                </select>
+
+                <label>Quantity</label>
+                <input type="number" name="quantity" id="edit_quantity" required>
+                <label>Price</label>
+                <input type="number" step="0.01" name="price" id="edit_price" required>
+                <label>Status</label>
+                <select name="status" id="edit_status" required>
+                    <?php
+                    $statuses = $conn->query("SELECT * FROM status");
+                    while ($s = $statuses->fetch_assoc()): ?>
+                        <option value="<?= $s['status_id'] ?>"><?= $s['status_label'] ?></option>
+                    <?php endwhile; ?>
+                </select>
+                <label>Threshold</label>
+                <input type="number" name="threshold" id="edit_threshold">
+                <button type="submit" class="save-btn">Save Changes</button>
+            </form>
         </div>
-
-        <!-- Add Modal -->
-        <div id="addModal" class="modal">
-            <div class="modal-content">
-                <span class="close" id="closeAdd">&times;</span>
-                <h2>Add Product</h2>
-                <form method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="add_product" value="1">
-
-                    <label>Product Code</label>
-                    <input type="text" name="product_code" value="<?= $nextCode ?>" readonly>
-
-                    <label>Product Picture</label>
-                    <input type="file" name="product_picture" id="add_picture" accept="image/*">
-                    <img id="add_picture_preview" src="" alt="Preview" style="display:none; width:80px; height:80px; border-radius:6px; object-fit:cover; margin-top:10px; border:1px solid #ccc;">
-
-                    <label>Product Name</label>
-                    <input type="text" name="product_name" required>
-
-                    <label>Category</label>
-                    <select name="category" id="add_category" required>
-                        <?php $categories->data_seek(0); ?>
-                        <?php while ($cat = $categories->fetch_assoc()): ?>
-                            <option value="<?= $cat['category_id'] ?>"><?= $cat['category_name'] ?></option>
-                        <?php endwhile; ?>
-                    </select>
-
-                    <label>Quantity</label>
-                    <input type="number" name="quantity" required>
-
-                    <label>Price</label>
-                    <input type="number" step="0.01" name="price" required>
-
-                    <label>Threshold</label>
-                    <input type="number" name="threshold">
-
-                    <button type="submit" class="save-btn">Add Product</button>
-                </form>
-            </div>
-        </div>
-
-
-        <!-- Edit Modal -->
-        <div id="editModal" class="modal">
-            <div class="modal-content">
-                <span class="close" id="closeEdit">&times;</span>
-                <h2>Edit Product</h2>
-                <form method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="update_product" value="1">
-                    <input type="hidden" name="product_id" id="edit_id">
-                    <label>Product Code</label>
-                    <input type="text" name="product_code" id="edit_code" required>
-                    <label>Product Picture</label>
-                    <input type="file" name="product_picture" id="edit_picture" accept="image/*">
-                    <img id="edit_picture_preview" src="" alt="Preview" style="display:none; width:80px; height:80px; border-radius:6px; object-fit:cover; margin-top:10px; border:1px solid #ccc;">
-                    <label>Product Name</label>
-                    <input type="text" name="product_name" id="edit_name" required>
-                    <label>Category</label>
-                    <select name="category" id="edit_category" required>
-                        <?php $categories->data_seek(0);
-                        while ($cat = $categories->fetch_assoc()): ?>
-                            <option value="<?= $cat['category_id'] ?>"><?= $cat['category_name'] ?></option>
-                        <?php endwhile; ?>
-                    </select>
-
-                    <label>Quantity</label>
-                    <input type="number" name="quantity" id="edit_quantity" required>
-                    <label>Price</label>
-                    <input type="number" step="0.01" name="price" id="edit_price" required>
-                    <label>Status</label>
-                    <select name="status" id="edit_status" required>
-                        <?php
-                        $statuses = $conn->query("SELECT * FROM status");
-                        while ($s = $statuses->fetch_assoc()): ?>
-                            <option value="<?= $s['status_id'] ?>"><?= $s['status_label'] ?></option>
-                        <?php endwhile; ?>
-                    </select>
-                    <label>Threshold</label>
-                    <input type="number" name="threshold" id="edit_threshold">
-                    <button type="submit" class="save-btn">Save Changes</button>
-                </form>
-            </div>
-        </div>
+    </div>
 
     </div>
 

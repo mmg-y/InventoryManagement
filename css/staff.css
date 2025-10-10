@@ -44,6 +44,10 @@ body {
   display: block;
 }
 
+.logo span{
+  color: var(--blue);
+}
+
 
 .sidebar {
   width: 260px;
@@ -59,7 +63,7 @@ body {
 .sidebar h2 {
   text-align: center;
   margin-bottom: 20px;
-  color: var(--smokey);
+  color: var(--blue);
 }
 
 .sidebar .menu li {
@@ -90,7 +94,7 @@ body {
 
 .sidebar .menu li:hover,
 .sidebar .menu li.active {
-  background: var(--smokey);
+  background: var(--blue);
 }
 
 .sidebar .menu li:hover a,

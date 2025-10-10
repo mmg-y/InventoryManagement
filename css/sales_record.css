@@ -108,7 +108,7 @@ th a:hover {
 }
 
 .search-form button {
-    background: var(--smokey);
+    background: var(--blue);
     border: none;
     color: var(--white);
     padding: 8px 12px;
@@ -146,7 +146,7 @@ th a:hover {
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    color: var(--smokey);
+    color: var(--blue);
     font-size: 14px;
 }
 

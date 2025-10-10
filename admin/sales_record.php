@@ -13,7 +13,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     $sort = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
     $order = isset($_GET['order']) ? $_GET['order'] : 'DESC';
 
-    $valid_columns = ['cart_id', 'seller', 'product_name', 'qty', 'price', 'total', 'status', 'created_at'];
+    $valid_columns = ['cart_id', 'seller', 'status', 'created_at'];
     if (!in_array($sort, $valid_columns)) $sort = 'created_at';
     $order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
     $toggle_order = $order === 'ASC' ? 'DESC' : 'ASC';
@@ -21,35 +21,52 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     $where = "WHERE 1=1";
     if ($search) {
         $safeSearch = $conn->real_escape_string($search);
-        $where .= " AND (c.seller LIKE '%$safeSearch%' OR p.product_name LIKE '%$safeSearch%')";
+        $where .= " AND c.seller LIKE '%$safeSearch%'";
     }
     if ($statusFilter) {
         $safeStatus = $conn->real_escape_string($statusFilter);
         $where .= " AND c.status='$safeStatus'";
     }
 
-    // Total records
-    $count_sql = "SELECT COUNT(*) as count 
-                  FROM carts c 
-                  JOIN cart_items ci ON c.cart_id = ci.cart_id 
-                  JOIN product p ON ci.product_id = p.product_id 
-                  $where";
+    // 1️⃣ Get total carts for pagination
+    $count_sql = "SELECT COUNT(*) as count FROM carts c $where";
     $total = $conn->query($count_sql)->fetch_assoc()['count'];
     $pages = ceil($total / $limit);
 
-    // Fetch paginated results
-    $sql = "SELECT c.cart_id, c.seller, c.total, c.status, c.created_at,
-                   ci.product_id, ci.qty, ci.price, p.product_name
-            FROM carts c
-            JOIN cart_items ci ON c.cart_id = ci.cart_id
-            JOIN product p ON ci.product_id = p.product_id
-            $where
-            ORDER BY $sort $order
-            LIMIT $start, $limit";
-    $result = $conn->query($sql);
+    // 2️⃣ Fetch paginated carts
+    $sql_carts = "SELECT c.cart_id, c.seller, c.status, c.created_at
+                  FROM carts c
+                  $where
+                  ORDER BY $sort $order
+                  LIMIT $start, $limit";
+    $result_carts = $conn->query($sql_carts);
 
     $grandTotal = 0;
+    $carts = [];
+    $cart_ids = [];
+
+    while ($cart = $result_carts->fetch_assoc()) {
+        $carts[$cart['cart_id']] = $cart;
+        $cart_ids[] = $cart['cart_id'];
+    }
+
+    // 3️⃣ Fetch all items for these carts in one query
+    $items_by_cart = [];
+    if (!empty($cart_ids)) {
+        $ids_str = implode(',', $cart_ids);
+        $sql_items = "SELECT ci.cart_id, ci.qty, ci.price, p.product_name
+                      FROM cart_items ci
+                      JOIN product p ON ci.product_id = p.product_id
+                      WHERE ci.cart_id IN ($ids_str)
+                      ORDER BY ci.cart_id";
+        $items_result = $conn->query($sql_items);
+
+        while ($item = $items_result->fetch_assoc()) {
+            $items_by_cart[$item['cart_id']][] = $item;
+        }
+    }
 ?>
+
     <div class="table-container">
         <table>
             <thead>
@@ -74,38 +91,40 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
             </thead>
             <tbody>
                 <?php
-                $currentCart = 0;
-                $subtotal = 0;
-                if ($result && $result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        if ($currentCart != $row['cart_id']) {
-                            if ($currentCart != 0) {
-                                echo "<tr class='subtotal-row'><td colspan='5' class='text-right'><strong>Subtotal:</strong></td><td><strong>$subtotal</strong></td><td colspan='2'></td></tr>";
+                if (!empty($carts)) {
+                    foreach ($carts as $cart_id => $cart) {
+                        $subtotal = 0;
+                        if (isset($items_by_cart[$cart_id])) {
+                            foreach ($items_by_cart[$cart_id] as $item) {
+                                $lineTotal = $item['qty'] * $item['price'];
+                                $subtotal += $lineTotal;
+                                $grandTotal += $lineTotal;
+
+                                $statusClass = '';
+                                if ($cart['status'] == 'completed') $statusClass = 'status-completed';
+                                if ($cart['status'] == 'pending') $statusClass = 'status-pending';
+                                if ($cart['status'] == 'cancelled') $statusClass = 'status-cancelled';
+
+                                echo "<tr>
+                                    <td>{$cart['cart_id']}</td>
+                                    <td>{$cart['seller']}</td>
+                                    <td>{$item['product_name']}</td>
+                                    <td>{$item['qty']}</td>
+                                    <td>{$item['price']}</td>
+                                    <td>$lineTotal</td>
+                                    <td class='$statusClass'>{$cart['status']}</td>
+                                    <td>{$cart['created_at']}</td>
+                                  </tr>";
                             }
-                            $currentCart = $row['cart_id'];
-                            $subtotal = 0;
+
+                            // Print subtotal once per cart
+                            // echo "<tr class='subtotal-row'>
+                            //     <td colspan='5' class='text-right'><strong>Subtotal:</strong></td>
+                            //     <td><strong>$subtotal</strong></td>
+                            //     <td colspan='2'></td>
+                            //   </tr>";
                         }
-                        $lineTotal = $row['qty'] * $row['price'];
-                        $subtotal += $lineTotal;
-                        $grandTotal += $lineTotal;
-
-                        $statusClass = '';
-                        if ($row['status'] == 'completed') $statusClass = 'status-completed';
-                        if ($row['status'] == 'pending') $statusClass = 'status-pending';
-                        if ($row['status'] == 'cancelled') $statusClass = 'status-cancelled';
-
-                        echo "<tr>
-                            <td>{$row['cart_id']}</td>
-                            <td>{$row['seller']}</td>
-                            <td>{$row['product_name']}</td>
-                            <td>{$row['qty']}</td>
-                            <td>{$row['price']}</td>
-                            <td>$lineTotal</td>
-                            <td class='$statusClass'>{$row['status']}</td>
-                            <td>{$row['created_at']}</td>
-                          </tr>";
                     }
-                    echo "<tr class='subtotal-row'><td colspan='5' class='text-right'><strong>Subtotal:</strong></td><td><strong>$subtotal</strong></td><td colspan='2'></td></tr>";
                 } else {
                     echo "<tr><td colspan='8'>No sales records found.</td></tr>";
                 }
@@ -121,10 +140,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
             <?php endfor; ?>
         </div>
     </div>
+
 <?php
     exit;
 }
 ?>
+
 
 <link rel="stylesheet" href="../css/sales_record.css">
 

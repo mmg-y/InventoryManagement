@@ -44,9 +44,12 @@ body {
     display: block;
 }
 
+.logo span {
+    color: var(--blue);
+}
 
 .sidebar {
-    width: 320px;
+    width: 290px;
     height: 100vh;
     background: var(--white);
     border-right: 1px solid var(--whiteTwo);
@@ -95,7 +98,8 @@ body {
 
 .sidebar .menu li:hover a,
 .sidebar .menu li.active a {
-    color: var(--white); 
+    color: var(--white);
+    background-color: var(--blue); 
 }
 
 .sidebar .menu .submenu {
@@ -158,7 +162,7 @@ justify-content: flex-start;
 
 .sidebar .menu .submenu .submenu-items li a:hover,
 .sidebar .menu .submenu .submenu-items li.active a {
-  background: var(--smokey);
+  background: var(--blue);
   color: var(--white);
 }
 
@@ -174,12 +178,12 @@ justify-content: flex-start;
 }
 
 .sidebar .menu .submenu.open > a {
-  background: var(--smokey);
+  background: var(--blue);
   color: var(--white);
 }
 
 .sidebar .menu .submenu .submenu-items li a:hover {
-    background: var(--smokey);
+    background: var(--blue);
     color: var(--white);
 }
 

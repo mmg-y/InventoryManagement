@@ -58,7 +58,7 @@ foreach ($notifications as $note) {
     <aside class="sidebar">
         <div>
             <div class="logo">
-                <img src="../images/logo-b.png" alt="Logo">
+                <img src="../images/logo-bl.png" alt="Logo">
                 <span>IMS</span>
             </div>
             <ul class="menu">

@@ -100,30 +100,31 @@ if (empty($supplierLabels)) {
 
     <div class="cards">
         <div class="card">
-            <h3>Total Sales</h3>
+            <h3><i class="fas fa-coins"></i> Total Sales</h3>
             <p>₱<?= number_format($totalSales, 2) ?></p>
         </div>
         <div class="card">
-            <h3>Best Product</h3>
+            <h3><i class="fas fa-box-open"></i> Best Product</h3>
             <p><?= $bestProduct['product_name'] ?? 'N/A' ?> (<?= $bestProduct['total_qty'] ?? 0 ?> sold)</p>
         </div>
         <div class="card">
-            <h3>Low Stock Items</h3>
+            <h3><i class="fas fa-exclamation-triangle"></i> Low Stock Items</h3>
             <p><?= $lowStock ?></p>
         </div>
         <div class="card">
-            <h3>Inventory Value</h3>
+            <h3><i class="fas fa-warehouse"></i> Inventory Value</h3>
             <p>₱<?= number_format($totalInventoryValue, 2) ?></p>
         </div>
         <div class="card">
-            <h3>Pending Purchases</h3>
+            <h3><i class="fas fa-hourglass-half"></i> Pending Purchases</h3>
             <p><?= $pendingPurchases ?></p>
         </div>
         <div class="card">
-            <h3>Top Supplier</h3>
+            <h3><i class="fas fa-truck"></i> Top Supplier</h3>
             <p><?= $topSupplier['name'] ?? 'N/A' ?> (<?= $topSupplier['orders'] ?? 0 ?> orders)</p>
         </div>
     </div>
+
 
     <div class="charts">
         <div class="chart-card" id="lineChart">
