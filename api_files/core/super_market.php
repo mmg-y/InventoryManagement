@@ -98,4 +98,40 @@
             return array_values($categories);
         }
 
+
+        // --- NEW: GET PRODUCTS WITH STATUS ---
+        public function getProductsWithStatus() {
+            $query = "
+                SELECT 
+                    p.product_id,
+                    p.product_code,
+                    p.product_name,
+                    p.product_picture,
+                    p.quantity,
+                    p.reserved_qty,
+                    p.price,
+                    p.notice_status,
+                    p.threshold,
+                    c.category_id,
+                    c.category_name,
+                    s.status_id,
+                    s.status_label
+                FROM product p
+                INNER JOIN category c ON p.category = c.category_id
+                INNER JOIN status s ON p.notice_status = s.status_id
+                ORDER BY c.category_name, p.product_name
+            ";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            $products = [];
+            while ($row = $result->fetch_assoc()) {
+                $products[] = $row;
+            }
+
+            return $products;
+        }
+
     }
