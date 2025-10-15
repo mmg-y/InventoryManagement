@@ -180,6 +180,78 @@
             return $stmt->execute();
         }
 
+        public function cancelOrder($batchId, $cancelDetails)
+        {
+            $query = "UPDATE product_stocks 
+                    SET status = 'cancelled', cancel_details = ? 
+                    WHERE product_stock_id = ?";
+                    
+            $stmt = $this->conn->prepare($query);
+            $stmt->bind_param('si', $cancelDetails, $batchId);
+
+            return $stmt->execute();
+        }
+
+
+        public function getSupplierPurchases()
+        {
+            $query = "
+                SELECT 
+                    ps.product_stock_id AS orderId,
+                    ps.batch_number AS batchNumber,
+                    s.name AS supplierName,
+                    s.contact as supplierContact,
+                    s.email as supplieremail,
+                    p.product_name AS itemName,
+                    ps.quantity AS quantity,
+                    ps.batch_number as batchNumber,
+                    ps.remaining_qty AS remainingQuantity,
+                    ps.cost_price AS unitCost,
+                    (ps.quantity * ps.cost_price) AS totalAmount,
+                    ps.status AS status,
+                    ps.created_at AS orderDate,
+                    ps.updated_at AS arrivedDate,
+                    ps.cancel_details AS cancelDetails,
+                    c.category_name AS categoryName
+                FROM product_stocks ps
+                JOIN supplier s ON ps.supplier_id = s.supplier_id
+                JOIN product p ON ps.product_id = p.product_id
+                LEFT JOIN category c ON p.category = c.category_id
+                ORDER BY ps.updated_at DESC
+            ";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            $purchases = [];
+
+            while ($row = $result->fetch_assoc()) {
+                $purchases[] = [
+                    "orderId" => $row["orderId"],
+                    "batchNumber" => $row["batchNumber"],
+                    "supplierName" => $row["supplierName"],
+                    "supplierContact" => $row["supplierContact"],
+                    "supplieremail" => $row["supplieremail"],
+                    "itemName" => $row["itemName"],
+                    "quantity" => $row["quantity"],
+                    "batchNumber" => $row["batchNumber"],
+                    "remainingQuantity" => $row["remainingQuantity"],
+                    "unitCost" => $row["unitCost"],
+                    "totalAmount" => $row["totalAmount"],
+                    "status" => $row["status"],
+                    "orderDate" => $row["orderDate"],
+                    "arrivedDate" => $row["arrivedDate"],
+                    "cancel_details" => $row["cancelDetails"],
+                    "categoryName" => $row["categoryName"]
+                ];
+            }
+
+            return $purchases;
+        }
+        
+
+
 
 
     }
