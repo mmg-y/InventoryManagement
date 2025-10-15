@@ -134,4 +134,52 @@
             return $products;
         }
 
+
+        // --- NEW: Get Warehouse Inventory (Batches + Products + Suppliers) ---
+        public function getWarehouseInventory() {
+            $query = "
+                SELECT 
+                    ps.product_stock_id AS batchId,
+                        ps.batch_number AS batchCode,
+                        p.product_name AS itemName,
+                        s.name AS supplierName,
+                        ps.remaining_qty AS quantity,
+                        ps.status AS status,
+                        ps.date_received AS dateAdded,
+                        ps.cost_price AS pricePerUnit,
+                        (ps.remaining_qty * ps.cost_price) AS totalValue
+                    FROM product_stocks ps
+                    JOIN product p ON ps.product_id = p.product_id
+                    JOIN supplier s ON ps.supplier_id = s.supplier_id
+                    WHERE ps.status IN ('active', 'pulled out')
+                    ORDER BY ps.date_received DESC;
+            ";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            $batches = [];
+            while ($row = $result->fetch_assoc()) {
+                $batches[] = $row;
+            }
+
+            return $batches;
+        }
+
+
+        public function updateBatchStatus($batchId, $status)
+        {
+            $query = "UPDATE product_stocks 
+                    SET status = ? 
+                    WHERE product_stock_id = ?";
+                    
+            $stmt = $this->conn->prepare($query);
+            $stmt->bind_param('si', $status, $batchId);
+
+            return $stmt->execute();
+        }
+
+
+
     }
