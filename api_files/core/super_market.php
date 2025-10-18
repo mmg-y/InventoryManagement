@@ -170,14 +170,78 @@
 
         public function updateBatchStatus($batchId, $status)
         {
-            $query = "UPDATE product_stocks 
-                    SET status = ?, updated_at = NOW()
-                    WHERE product_stock_id = ?";
-                    
-            $stmt = $this->conn->prepare($query);
-            $stmt->bind_param('si', $status, $batchId);
+            try {
+                // 1️⃣ Get product_id of the batch being updated
+                $queryGetProduct = "SELECT product_id FROM product_stocks WHERE product_stock_id = ?";
+                $stmt = $this->conn->prepare($queryGetProduct);
+                $stmt->bind_param('i', $batchId);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-            return $stmt->execute();
+                if ($result->num_rows === 0) {
+                    throw new Exception("Batch not found.");
+                }
+
+                $row = $result->fetch_assoc();
+                $productId = $row['product_id'];
+
+                // 2️⃣ FIFO: If setting to 'active', deactivate currently active batch(es) of the same product
+                if (strtolower($status) === 'active') {
+                    $queryDeactivate = "
+                        UPDATE product_stocks 
+                        SET status = 'pulled out', updated_at = NOW() 
+                        WHERE product_id = ? AND status = 'active' AND product_stock_id != ?";
+                    
+                    $stmtDeactivate = $this->conn->prepare($queryDeactivate);
+                    $stmtDeactivate->bind_param('ii', $productId, $batchId);
+                    $stmtDeactivate->execute();
+                }
+
+                // 3️⃣ Update the selected batch's status
+                $queryUpdate = "
+                    UPDATE product_stocks 
+                    SET status = ?, updated_at = NOW() 
+                    WHERE product_stock_id = ?";
+                
+                $stmtUpdate = $this->conn->prepare($queryUpdate);
+                $stmtUpdate->bind_param('si', $status, $batchId);
+
+                if (!$stmtUpdate->execute()) {
+                    throw new Exception("Failed to update batch: " . $stmtUpdate->error);
+                }
+
+                // 4️⃣ Recalculate total_quantity from all active batches
+                $queryRecalc = "
+                    SELECT COALESCE(SUM(remaining_qty), 0) AS total_qty
+                    FROM product_stocks
+                    WHERE product_id = ? AND status = 'active'
+                ";
+                $stmtRecalc = $this->conn->prepare($queryRecalc);
+                $stmtRecalc->bind_param('i', $productId);
+                $stmtRecalc->execute();
+                $resQty = $stmtRecalc->get_result()->fetch_assoc();
+                $totalQty = $resQty['total_qty'];
+
+                // 5️⃣ Update the product table
+                $queryUpdateProduct = "
+                    UPDATE product
+                    SET total_quantity = ?, updated_at = NOW()
+                    WHERE product_id = ?
+                ";
+                $stmtUpdateProduct = $this->conn->prepare($queryUpdateProduct);
+                $stmtUpdateProduct->bind_param('ii', $totalQty, $productId);
+
+                if (!$stmtUpdateProduct->execute()) {
+                    throw new Exception("Failed to update product quantity: " . $stmtUpdateProduct->error);
+                }
+
+                // 6️⃣ Return success
+                return true;
+
+            } catch (Exception $e) {
+                error_log("updateBatchStatus error: " . $e->getMessage());
+                return false;
+            }
         }
 
         public function cancelOrder($batchId, $cancelDetails)
