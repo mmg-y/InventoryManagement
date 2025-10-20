@@ -1,7 +1,7 @@
 <?php
 include '../config.php';
 
-// AJAX HANDLER 
+// handler of ajax
 if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     $limit = 10;
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -28,12 +28,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
         $where .= " AND c.status='$safeStatus'";
     }
 
-    // 1️⃣ Get total carts for pagination
+    // Get total carts for pagination
     $count_sql = "SELECT COUNT(*) as count FROM carts c $where";
     $total = $conn->query($count_sql)->fetch_assoc()['count'];
     $pages = ceil($total / $limit);
 
-    // 2️⃣ Fetch paginated carts
+    // Fetch paginated carts
     $sql_carts = "SELECT c.cart_id, c.seller, c.status, c.created_at
                   FROM carts c
                   $where
@@ -50,7 +50,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
         $cart_ids[] = $cart['cart_id'];
     }
 
-    // 3️⃣ Fetch all items for these carts in one query
+    // Fetch all items for these carts in one query
     $items_by_cart = [];
     if (!empty($cart_ids)) {
         $ids_str = implode(',', $cart_ids);
@@ -149,7 +149,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
 
 <link rel="stylesheet" href="../css/sales_record.css">
 
-<div class="main">
+<div class="page-content sales-record">
     <h1>Sales Record</h1>
     <div class="actions-bar">
         <form method="GET" class="search-form">
@@ -169,7 +169,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     </div>
 
     <div id="salesTable">
-        <!-- AJAX-loaded table will appear here -->
     </div>
 </div>
 

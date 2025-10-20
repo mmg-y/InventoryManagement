@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
         }
     }
 
-    // Basic validation
+    // validation of fields
     if (!$first_name || !$last_name || !$contact || !$email || !$username || !$password || !$type) {
         $errors[] = "All fields are required.";
     }
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
         $errors[] = "Invalid email format.";
     }
 
-    // Check username/email uniqueness
+    // Check there is already an existing email and username
     $stmt = $conn->prepare("SELECT id FROM user WHERE username=? OR email=? LIMIT 1");
     $stmt->bind_param("ss", $username, $email);
     $stmt->execute();
@@ -92,7 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
         </div>
     <?php endif; ?>
 
-    <!-- Form -->
     <form method="POST" enctype="multipart/form-data">
         <div class="profile-upload-wrapper">
             <div class="profile-preview">

@@ -3,9 +3,17 @@ ob_start();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-if (!isset($_SESSION['username']) || $_SESSION['type'] !== "admin") {
+
+// require login + admin type
+if (empty($_SESSION['username']) || ($_SESSION['type'] ?? '') !== "admin") {
     header("Location: index.php");
     exit;
+}
+
+include_once '../config.php';
+
+if (!isset($conn) || !$conn) {
+    die("Database connection not available.");
 }
 
 $profile_src = '../uploads/default.png';
@@ -13,20 +21,34 @@ if (!empty($_SESSION['profile_pic'])) {
     $profile_src = '../' . ltrim($_SESSION['profile_pic'], '/');
 }
 
-include '../config.php';
-
 $notifications = [];
 
-$lowStockItems = $conn->query("SELECT product_name, quantity, threshold FROM product WHERE quantity <= threshold");
-while ($row = $lowStockItems->fetch_assoc()) {
+$lowStockSql = "SELECT product_name, total_quantity AS quantity, threshold FROM product WHERE total_quantity <= threshold";
+$lowStockItems = $conn->query($lowStockSql);
+if ($lowStockItems && $lowStockItems->num_rows > 0) {
+    while ($row = $lowStockItems->fetch_assoc()) {
+        $notifications[] = [
+            'message' => "Low stock: {$row['product_name']} ({$row['quantity']} left)",
+            'read' => false,
+            'link' => '#'
+        ];
+    }
+}
+
+$pendingPurchases = 0;
+$pendingQuery = $conn->query("SELECT COUNT(*) AS cnt FROM product_stocks WHERE status='pending'");
+if ($pendingQuery && ($row = $pendingQuery->fetch_assoc())) {
+    $pendingPurchases = (int)$row['cnt'];
+}
+
+if ($pendingPurchases > 0) {
     $notifications[] = [
-        'message' => "Low stock: {$row['product_name']} ({$row['quantity']} left)",
+        'message' => "You have {$pendingPurchases} pending purchase(s).",
         'read' => false,
         'link' => '#'
     ];
 }
 
-$pendingPurchases = $conn->query("SELECT COUNT(*) as cnt FROM stock WHERE status='pending'")->fetch_assoc()['cnt'];
 if ($pendingPurchases > 0) {
     $notifications[] = [
         'message' => "You have {$pendingPurchases} pending purchase(s).",
@@ -37,11 +59,30 @@ if ($pendingPurchases > 0) {
 
 $unreadCount = 0;
 foreach ($notifications as $note) {
-    if (!$note['read']) $unreadCount++;
+    if (empty($note['read'])) $unreadCount++;
+}
+
+$allowed_pages = [
+    'dashboard',
+    'add_user',
+    'user_roles',
+    'supplier',
+    'sales_record',
+    'analytics_report',
+    'sales_prediction',
+    'settings'
+];
+
+$page_to_include = 'dashboard';
+if (!empty($_GET['page'])) {
+    $requested = basename($_GET['page']);
+    if (in_array($requested, $allowed_pages, true)) {
+        $page_to_include = $requested;
+    } else {
+        $page_to_include = 'dashboard';
+    }
 }
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -56,159 +97,137 @@ foreach ($notifications as $note) {
 <body>
 
     <aside class="sidebar">
-        <div>
-            <div class="logo">
-                <img src="../images/logo-bl.png" alt="Logo">
-                <span>IMS</span>
+        <div class="sidebar-header">
+            <div class="top">
+                <div class="logo">
+                    <div class="team-logo">
+                        <img src="../images/logo-white.png" alt="Logo">
+                    </div>
+                    <div class="team-info">
+                        <span class="team-name">MartIQ</span>
+                        <!-- <span class="team-plan">Smart sales, Smart Store</span> -->
+                    </div>
+                </div>
+                <button class="collapse-btn" id="collapseBtn">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
             </div>
-            <ul class="menu">
-                <li class="<?= (!isset($_GET['page']) || $_GET['page'] === 'dashboard') ? 'active' : '' ?>">
-                    <a href="?page=dashboard"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
-                </li>
-
-                <!-- User Dropdown -->
-                <li class="submenu">
-                    <a><i class="fa-solid fa-users"></i> User Management <i class="fa-solid fa-chevron-down arrow"></i></a>
-                    <ul class="submenu-items">
-                        <li class="<?= ($_GET['page'] ?? '') === 'add_user' ? 'active' : '' ?>">
-                            <a href="?page=add_user"><i class="fa-solid fa-user-plus"></i> Add User</a>
-                        </li>
-                        <li class="<?= ($_GET['page'] ?? '') === 'user_roles' ? 'active' : '' ?>">
-                            <a href="?page=user_roles"><i class="fa-solid fa-user-shield"></i> User Roles</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'supplier' ? 'active' : '' ?>">
-                    <a href="?page=supplier"><i class="fa-solid fa-user-plus"></i> Add Supplier</a>
-                </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'sales_record' ? 'active' : '' ?>">
-                    <a href="?page=sales_record"><i class="fa-solid fa-receipt"></i> Sales Record</a>
-                </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'analytics_report' ? 'active' : '' ?>">
-                    <a href="?page=analytics_report"><i class="fa-solid fa-chart-pie"></i> Analytics & Reports</a>
-                </li>
-                <li class="<?= ($_GET['page'] ?? '') === 'sales_prediction' ? 'active' : '' ?>">
-                    <a href="?page=sales_prediction"><i class="fa-solid fa-magnifying-glass-chart"></i> Sales Prediction</a>
-                </li>
-            </ul>
         </div>
 
-        <ul class="menu bottom-menu">
-            <li class="<?= ($_GET['page'] ?? '') === 'settings' ? 'active' : '' ?>">
-                <a href="?page=settings"><i class="fa-solid fa-gear"></i> Settings</a>
-            </li>
-        </ul>
+        <div class="sidebar-content">
+            <div class="sidebar-group">
+                <p class="sidebar-label">Admin</p>
+                <ul class="menu">
+                    <li class="<?= ($page_to_include === 'dashboard') ? 'active' : '' ?>">
+                        <a href="?page=dashboard" title="Dashboard"><i class="fa-solid fa-chart-line"></i> <span>Dashboard</span></a>
+                    </li>
+
+                    <li class="submenu <?= ($page_to_include === 'add_user' || $page_to_include === 'user_roles') ? 'open' : '' ?>">
+                        <a class="submenu-toggle" title="User Management">
+                            <i class="fa-solid fa-users"></i> <span>User Management</span>
+                            <i class="fa-solid fa-chevron-down arrow"></i>
+                        </a>
+                        <ul class="submenu-items">
+                            <li class="<?= ($page_to_include === 'add_user') ? 'active' : '' ?>">
+                                <a href="?page=add_user"><i class="fa-solid fa-user-plus"></i> <span>Add User</span></a>
+                            </li>
+                            <li class="<?= ($page_to_include === 'user_roles') ? 'active' : '' ?>">
+                                <a href="?page=user_roles"><i class="fa-solid fa-user-shield"></i> <span>User Roles</span></a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="<?= ($page_to_include === 'supplier') ? 'active' : '' ?>">
+                        <a href="?page=supplier" title="Add Supplier"><i class="fa-solid fa-user-plus"></i> <span>Add Supplier</span></a>
+                    </li>
+                    <li class="<?= ($page_to_include === 'sales_record') ? 'active' : '' ?>">
+                        <a href="?page=sales_record" title="Sales Record"><i class="fa-solid fa-receipt"></i> <span>Sales Record</span></a>
+                    </li>
+                    <li class="<?= ($page_to_include === 'analytics_report') ? 'active' : '' ?>">
+                        <a href="?page=analytics_report" title="Analytics Report"><i class="fa-solid fa-chart-pie"></i> <span>Analytics & Reports</span></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer" id="profileMenu">
+            <div class="profile-info">
+                <img src="<?= htmlspecialchars($profile_src); ?>" alt="User" class="profile-img" />
+                <div class="details">
+                    <span class="user-name"><?= htmlspecialchars($_SESSION['username'] ?? 'admin'); ?></span>
+                    <span class="user-email"><?= htmlspecialchars($_SESSION['email'] ?? 'admin@gmail.com'); ?></span>
+                </div>
+            </div>
+
+            <button class="profile-toggle" aria-label="Profile Menu">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+
+            <div class="profile-dropdown">
+                <div class="profile-header">
+                    <img src="<?= htmlspecialchars($profile_src); ?>" alt="User" class="profile-img" />
+                    <div class="info">
+                        <span class="user-name"><?= htmlspecialchars($_SESSION['username'] ?? 'admin'); ?></span>
+                        <span class="user-email"><?= htmlspecialchars($_SESSION['email'] ?? 'admin@gmail.com'); ?></span>
+                    </div>
+                </div>
+                <ul class="menu">
+                    <li><a href="#profile"><i class="fa-solid fa-user"></i> Manage Profile</a></li>
+                    <li><a href="../logout.php"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+                </ul>
+            </div>
+        </div>
     </aside>
 
-
-
     <main class="main">
-
         <div class="topbar">
-            <div class="search">
-                <input type="text" placeholder="Search...">
-            </div>
-
-            <div class="topbar-right">
-
-                <div class="notification-wrapper">
-                    <button class="icon-btn" id="notificationBtn">
-                        <i class="fa-solid fa-bell"></i>
-                        <?php if ($unreadCount > 0): ?>
-                            <span class="badge"><?= $unreadCount ?></span>
-                        <?php endif; ?>
-                    </button>
-                    <div class="notification-dropdown" id="notificationDropdown">
-                        <?php if (empty($notifications)): ?>
-                            <div class="notification-item">No notifications</div>
-                        <?php else: ?>
-                            <?php foreach ($notifications as $note): ?>
-                                <a href="<?= htmlspecialchars($note['link']) ?>" class="notification-item <?= $note['read'] ? 'read' : 'unread' ?>">
-                                    <?= htmlspecialchars($note['message']) ?>
-                                </a>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="profile" id="profileMenu">
-                    <img src="<?= htmlspecialchars($profile_src); ?>" alt="Profile" class="profile-img">
-                    <span>
-                        <h1>Welcome, <?= htmlspecialchars($_SESSION['username']); ?>!</h1>
-                    </span>
-                    <i class="fa-solid fa-chevron-down chevron"></i>
-
-                    <div class="dropdown" id="dropdownMenu">
-                        <a href="#profile">Manage Profile</a>
-                        <a href="../logout.php">Logout</a>
-                    </div>
+            <div class="notification-wrapper" id="notifWrapper">
+                <button class="icon-btn" id="notifBtn">
+                    <i class="fa-solid fa-bell"></i>
+                    <?php if ($unreadCount > 0): ?>
+                        <span class="badge" id="notifCount"><?= $unreadCount ?></span>
+                    <?php endif; ?>
+                </button>
+                <div class="notification-dropdown" id="notifDropdown">
+                    <?php if (!empty($notifications)): ?>
+                        <?php foreach ($notifications as $note): ?>
+                            <a href="<?= htmlspecialchars($note['link']) ?>" class="notification-item <?= empty($note['read']) ? 'unread' : '' ?>">
+                                <?= htmlspecialchars($note['message']) ?>
+                            </a>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="notification-item">No notifications.</div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
-
 
         <div class="page-content">
             <?php
-            if (isset($_GET['page'])) {
-                $page = $_GET['page'];
-                switch ($page) {
-                    case 'add_user':
-                        include 'add_user.php';
-                        break;
-                    case 'user_roles':
-                        include 'user_roles.php';
-                        break;
-                    case 'supplier':
-                        include 'supplier.php';
-                        break;
-                    case 'sales_record':
-                        include 'sales_record.php';
-                        break;
-                    case 'analytics_report':
-                        include 'analytics_report.php';
-                        break;
-                    case 'sales_prediction':
-                        include 'sales_prediction.php';
-                        break;
-                    case 'settings':
-                        include 'settings.php';
-                        break;
-                    case 'dashboard':
-                    default:
-                        include 'dashboard.php';
-                        break;
-                }
+            $include_file = $page_to_include . '.php';
+            $include_path = __DIR__ . '/' . $include_file;
+            if (file_exists($include_path)) {
+                include $include_path;
             } else {
-                include 'dashboard.php';
+                include __DIR__ . '/dashboard.php';
             }
             ?>
         </div>
     </main>
 
-    <script>
-        const profile = document.getElementById("profileMenu");
-        profile.addEventListener("click", () => {
-            profile.classList.toggle("active");
-        });
 
-        document.addEventListener("click", (e) => {
-            if (!profile.contains(e.target)) {
-                profile.classList.remove("active");
-            }
-        });
-    </script>
-
-    <div id="profileModal" class="modal" aria-hidden="true">
+    <div id="profileModal" class="modal" aria-hidden="true" style="display:none;">
         <div class="modal-content">
             <span class="close-btn" id="closeProfile" aria-label="Close">&times;</span>
             <h2>Edit Profile</h2>
 
-            <?php if (isset($_SESSION['success'])): ?>
-                <div class="alert success"><?= $_SESSION['success'];
+            <?php if (!empty($_SESSION['success'])): ?>
+                <div class="alert success"><?= htmlspecialchars($_SESSION['success']);
                                             unset($_SESSION['success']); ?></div>
             <?php endif; ?>
-            <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert error"><?= $_SESSION['error'];
+            <?php if (!empty($_SESSION['error'])): ?>
+                <div class="alert error"><?= htmlspecialchars($_SESSION['error']);
                                             unset($_SESSION['error']); ?></div>
             <?php endif; ?>
 
@@ -248,107 +267,158 @@ foreach ($notifications as $note) {
         </div>
     </div>
 
-
     <script>
-        const profileLink = document.querySelector('#dropdownMenu a[href="#profile"]');
-        const profileModal = document.getElementById('profileModal');
-        const closeProfile = document.getElementById('closeProfile');
-        const profilePicInput = document.getElementById('profilePicInput');
-        const profilePreview = document.getElementById('profilePreview');
+        document.addEventListener("DOMContentLoaded", () => {
+            const profileLink = document.querySelector('#dropdownMenu a[href="#profile"]');
+            const profileModal = document.getElementById('profileModal');
+            const closeProfile = document.getElementById('closeProfile');
+            const profilePicInput = document.getElementById('profilePicInput');
+            const profilePreview = document.getElementById('profilePreview');
 
-        if (profileLink) {
-            profileLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                profileModal.style.display = 'flex';
-                profileModal.setAttribute('aria-hidden', 'false');
-            });
-        }
-
-        closeProfile.addEventListener('click', () => {
-            profileModal.style.display = 'none';
-            profileModal.setAttribute('aria-hidden', 'true');
-        });
-
-        window.addEventListener('click', (e) => {
-            if (e.target === profileModal) {
-                profileModal.style.display = 'none';
-                profileModal.setAttribute('aria-hidden', 'true');
+            if (profileLink && profileModal) {
+                profileLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    profileModal.style.display = 'flex';
+                    profileModal.setAttribute('aria-hidden', 'false');
+                });
             }
-        });
 
-        // Live preview profile picture
-        if (profilePicInput && profilePreview) {
-            profilePicInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    profilePreview.src = URL.createObjectURL(file);
+            if (closeProfile && profileModal) {
+                closeProfile.addEventListener('click', () => {
+                    profileModal.style.display = 'none';
+                    profileModal.setAttribute('aria-hidden', 'true');
+                });
+            }
+
+            window.addEventListener('click', (e) => {
+                if (e.target === profileModal) {
+                    profileModal.style.display = 'none';
+                    profileModal.setAttribute('aria-hidden', 'true');
                 }
             });
-        }
 
-        // auto-open modal if server asked (after submit)
-        <?php if (!empty($_SESSION['open_profile_modal'])): ?>
-            document.addEventListener('DOMContentLoaded', function() {
+            if (profilePicInput && profilePreview) {
+                profilePicInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) profilePreview.src = URL.createObjectURL(file);
+                });
+            }
+
+            <?php if (!empty($_SESSION['open_profile_modal'])): ?>
                 const pm = document.getElementById('profileModal');
                 if (pm) {
                     pm.style.display = 'flex';
                     pm.setAttribute('aria-hidden', 'false');
                 }
-            });
-        <?php unset($_SESSION['open_profile_modal']);
-        endif; ?>
-    </script>
-
-    <script>
-        const profileMenu = document.getElementById("profileMenu");
-        const dropdownMenu = document.getElementById("dropdownMenu");
-        const notificationBtn = document.getElementById("notificationBtn");
-        const notificationDropdown = document.getElementById("notificationDropdown");
-
-        //  PROFILE DROPDOWN TOGGLE
-        profileMenu.addEventListener("click", (e) => {
-            e.stopPropagation(); // Prevent closing when clicking inside
-            dropdownMenu.classList.toggle("show");
-            notificationDropdown.style.display = 'none'; // Close notifications if open
-        });
-
-        // NOTIFICATIONS DROPDOWN TOGGLE 
-        notificationBtn.addEventListener("click", (e) => {
-            e.stopPropagation(); // Prevent closing when clicking inside
-            notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
-            dropdownMenu.classList.remove("show"); // Close profile dropdown if open
-        });
-
-        //  CLOSE DROPDOWNS WHEN CLICKING OUTSIDE 
-        document.addEventListener("click", () => {
-            dropdownMenu.classList.remove("show");
-            notificationDropdown.style.display = 'none';
-        });
-
-        //  OPTIONAL: MARK NOTIFICATION AS READ WHEN CLICKED 
-        document.querySelectorAll('.notification-item').forEach(item => {
-            item.addEventListener('click', () => {
-                item.classList.remove('unread');
-                item.classList.add('read');
-                // You can also make an AJAX call here to update 'read' in DB
-            });
+            <?php unset($_SESSION['open_profile_modal']);
+            endif; ?>
         });
     </script>
 
     <script>
-        // Toggle submenu on click
-        document.querySelectorAll(".submenu > a").forEach(menu => {
-            menu.addEventListener("click", function(e) {
-                e.preventDefault(); // stop page jump if <a href="#">
-                this.parentElement.classList.toggle("open");
-            });
-        });
+        document.addEventListener("DOMContentLoaded", () => {
+            // === NOTIFICATION DROPDOWN ===
+            const notifBtn = document.getElementById("notifBtn");
+            const notifWrapper = document.getElementById("notifWrapper");
 
-        // Auto-open submenu if one of its children has class "active"
-        document.querySelectorAll(".submenu").forEach(sub => {
-            if (sub.querySelector(".submenu-items li.active")) {
-                sub.classList.add("open");
+            if (notifBtn && notifWrapper) {
+                notifBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    notifWrapper.classList.toggle("active");
+                });
+
+                document.addEventListener("click", (e) => {
+                    if (!notifWrapper.contains(e.target)) {
+                        notifWrapper.classList.remove("active");
+                    }
+                });
             }
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const collapseBtn = document.getElementById("collapseBtn");
+            const sidebar = document.querySelector(".sidebar");
+            const main = document.querySelector(".main");
+            const topbar = document.querySelector(".topbar");
+
+            if (collapseBtn && sidebar) {
+                collapseBtn.addEventListener("click", () => {
+                    sidebar.classList.toggle("collapsed");
+                });
+            }
+        });
+    </script>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const sidebar = document.querySelector(".sidebar");
+            const profileMenu = document.getElementById("profileMenu");
+            const toggleBtn = profileMenu?.querySelector(".profile-toggle");
+            const dropdown = profileMenu?.querySelector(".profile-dropdown");
+            const profileInfo = profileMenu?.querySelector(".profile-info");
+
+            if (!profileMenu || !dropdown || !profileInfo) return;
+
+            const toggleDropdown = (e) => {
+                e.stopPropagation();
+                profileMenu.classList.toggle("open");
+                const isOpen = profileMenu.classList.contains("open");
+                dropdown.style.display = isOpen ? "block" : "none";
+
+                if (sidebar.classList.contains("collapsed")) {
+                    dropdown.style.position = "fixed";
+                    dropdown.style.left = "90px";
+                    dropdown.style.bottom = "80px";
+                } else {
+                    dropdown.style.position = "fixed";
+                    dropdown.style.left = "260px";
+                    dropdown.style.bottom = "80px";
+                }
+
+                dropdown.style.right = "auto";
+                dropdown.style.zIndex = "5000";
+            };
+
+            profileInfo.addEventListener("click", toggleDropdown);
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener("click", toggleDropdown);
+            }
+
+            document.addEventListener("click", (e) => {
+                if (!profileMenu.contains(e.target)) {
+                    profileMenu.classList.remove("open");
+                    dropdown.style.display = "none";
+                }
+            });
+        });
+    </script>
+
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // === SIDEBAR SUBMENU TOGGLE ===
+            const submenuToggles = document.querySelectorAll(".submenu-toggle");
+
+            submenuToggles.forEach(toggle => {
+                toggle.addEventListener("click", (e) => {
+                    e.preventDefault();
+
+                    const parentLi = toggle.closest(".submenu");
+
+                    // Close other open submenus (optional)
+                    document.querySelectorAll(".submenu.open").forEach(menu => {
+                        if (menu !== parentLi) menu.classList.remove("open");
+                    });
+
+                    // Toggle current submenu
+                    parentLi.classList.toggle("open");
+                });
+            });
         });
     </script>
 

@@ -99,11 +99,10 @@ $daysJSON = json_encode($days);
 
     <?php if ($lowStock > 0): ?>
         <div class="notification">
-            ⚠️ Low Stock Alert: <?= $lowStock ?> items need restocking.
+            Low Stock Alert: <?= $lowStock ?> items need restocking.
         </div>
     <?php endif; ?>
 
-    <!-- === METRICS === -->
     <div class="metrics">
         <div class="card">
             <div class="icon-label">
@@ -135,8 +134,6 @@ $daysJSON = json_encode($days);
         </div>
     </div>
 
-
-    <!-- === FIRST ROW === -->
     <div class="row">
         <div class="col">
             <div class="card_sales">
@@ -165,7 +162,6 @@ $daysJSON = json_encode($days);
 
     </div>
 
-    <!-- === SECOND ROW === -->
     <div class="row">
         <div class="col">
             <div class="card_comparison">

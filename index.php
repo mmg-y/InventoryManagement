@@ -72,9 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     if ($row['type'] === "admin") {
                         header("Location: admin/admin.php");
-                    } elseif ($row['type'] === "staff") {
+                    } elseif ($row['type'] === "cashier") {
                         header("Location: staff/staff.php");
-                    } elseif ($row['type'] === "bodegero") {
+                    } elseif ($row['type'] === "warehouse_man") {
                         header("Location: budegero/budegero.php");
                     }
                     exit;
@@ -108,28 +108,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 
     <div class="container">
-        <div class="left">
-            <div class="overlay"></div>
-            <div class="top-text">IMS</div>
-            <div class="quote">
-                <h2>Inventory in Sales Management</h2>
-                <p>Organize your stock, streamline your sales, and watch your business grow.</p>
-            </div>
-        </div>
-
         <div class="right" id="rightPanel">
             <div class="logo">
-                <img src="images/logo-b.png" alt="Logo">
-                <span>IMS</span>
+                <img src="images/logo-teal.png" alt="Logo">
+                <span>MartIQ</span>
             </div>
             <div class="form-container" id="signin">
                 <h1>Welcome Back</h1>
-                <p>Enter your email and password to access your account</p>
+                <p>Enter your username and password to access your account</p>
 
                 <?php if (!empty($loginMessage)): ?>
                     <div class="message"><?= htmlspecialchars($loginMessage) ?></div>
                 <?php endif; ?>
-
 
                 <form action="index.php" method="POST">
                     <input type="hidden" name="action" value="login">
@@ -142,63 +132,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="options">
                         <label><input type="checkbox"> Remember me</label>
-                        <a href="#">Forgot Password</a>
+                        <!-- <a href="#">Forgot Password</a> -->
                     </div>
 
                     <button class="btn btn-primary" type="submit">Sign In</button>
-                    <!-- <div class="toggle-link">Don’t have an account? <a id="showSignup">Sign Up</a></div> -->
                 </form>
             </div>
-
-            <!-- <div class="form-container" id="signup">
-                <h1>Create Account</h1>
-                <p>Fill in the details below to create your account</p>
-
-                <?php if (!empty($signupMessage)): ?>
-                    <div class="message"><?= htmlspecialchars($signupMessage) ?></div>
-                <?php endif; ?>
-
-                <form action="index.php" method="POST">
-                    <input type="hidden" name="action" value="signup">
-
-                    <div class="input-group">
-                        <div class="form-group">
-                            <input name="last_name" type="text" placeholder="Last Name" required>
-                        </div>
-                        <div class="form-group">
-                            <input name="first_name" type="text" placeholder="First Name" required>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <div class="form-group">
-                            <input name="contact" type="text" placeholder="Contact" required>
-                        </div>
-                        <div class="form-group">
-                            <input name="email" type="email" placeholder="Email" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <input name="username" type="text" placeholder="Username" required>
-                    </div>
-                    <div class="input-group">
-                        <div class="form-group">
-                            <input name="password" type="password" placeholder="Password" required>
-                        </div>
-                        <div class="form-group">
-                            <select name="type" required>
-                                <option value="">Select Type</option>
-                                <option value="admin">Admin</option>
-                                <option value="staff">Staff</option>
-                                <option value="bodegero">Bodegero</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" type="submit">Sign Up</button>
-                    <div class="toggle-link">Already have an account? <a id="showSignin">Sign In</a></div>
-                </form>
-            </div> -->
+        </div>
+        <div class="left">
+            <div class="overlay"></div>
+            <div class="quote">
+                <h2>Inventory in Sales Management</h2>
+                <p>Organize your stock, streamline your sales, and watch your business grow.</p>
+            </div>
         </div>
     </div>
+
 
     <script>
         const rightPanel = document.getElementById('rightPanel');

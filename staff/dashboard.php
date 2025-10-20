@@ -13,7 +13,7 @@ $staff_id = $_SESSION['id'];
 $selected_category = $_GET['category'] ?? 'all';
 $search = trim($_GET['q'] ?? '');
 
-// Build WHERE conditions
+// Build where conditions
 $where = [];
 if ($selected_category !== 'all') {
     $where[] = "p.category = " . intval($selected_category);
@@ -24,7 +24,7 @@ if ($search !== '') {
 }
 $where_sql = $where ? "WHERE " . implode(" AND ", $where) : "";
 
-// Fetch Products
+// Fetch products
 $products = $conn->query("
     SELECT p.*, c.category_name 
     FROM product p
@@ -33,10 +33,10 @@ $products = $conn->query("
     ORDER BY p.product_name
 ");
 
-// Get Categories
+// Get categories
 $categories = $conn->query("SELECT * FROM category ORDER BY category_name");
 
-// Check or Create Active Cart
+// Check or create active cart
 $cart = $conn->query("SELECT * FROM carts WHERE seller = $staff_id AND status = 'pending' LIMIT 1")->fetch_assoc();
 if (!$cart) {
     $conn->query("INSERT INTO carts (seller, status, total, created_at) VALUES ($staff_id, 'pending', 0, NOW())");
@@ -45,7 +45,7 @@ if (!$cart) {
     $cart_id = $cart['cart_id'];
 }
 
-// Get Cart Items
+// Get cart items
 $cart_items = $conn->query("
     SELECT ci.*, p.product_name, p.product_picture, p.price AS product_price
     FROM cart_items ci 
@@ -53,7 +53,7 @@ $cart_items = $conn->query("
     WHERE ci.cart_id = $cart_id
 ");
 
-// 5. Billing History
+// Billing history
 $where_billing_sql = "WHERE c.seller = $staff_id AND c.status = 'completed'";
 
 if (!empty($_GET['from'])) {
@@ -69,15 +69,15 @@ if (!empty($_GET['cart_search'])) {
     $where_billing_sql .= " AND c.cart_id = $cart_search";
 }
 
-// --- Sorting ---
+// Sorting 
 $valid_sort_columns = ["c.cart_id", "total_items", "c.total", "c.created_at"];
 $sort_col = $_GET['sort'] ?? "c.created_at";
 $sort_dir = $_GET['dir'] ?? "DESC";
 if (!in_array($sort_col, $valid_sort_columns)) $sort_col = "c.created_at";
 $sort_dir = strtoupper($sort_dir) === "ASC" ? "ASC" : "DESC";
 
-// --- Records per page ---
-$per_page = isset($_GET['records']) ? max(5, intval($_GET['records'])) : 10; // default 10, min 5
+// Records per page 
+$per_page = isset($_GET['records']) ? max(5, intval($_GET['records'])) : 10;
 $page_num = max(1, intval($_GET['bpage'] ?? 1));
 $offset = ($page_num - 1) * $per_page;
 
@@ -118,12 +118,9 @@ $order = $_GET['dir'] ?? 'DESC';
 
 <div class="dashboard">
 
-    <!-- LEFT SIDE (scrolls) -->
     <div class="dashboard-left">
-        <!-- Products -->
         <div class="products">
             <h2>Products</h2>
-            <!-- Category Dropdown -->
             <div class="category-filter">
                 <label for="categorySelect">Category:</label>
                 <select id="categorySelect">
@@ -139,7 +136,6 @@ $order = $_GET['dir'] ?? 'DESC';
                 </select>
             </div>
 
-            <!-- Product Grid -->
             <div class="product-grid">
                 <?php while ($row = $products->fetch_assoc()):
                     $picture = basename($row['product_picture']); ?>
@@ -157,7 +153,6 @@ $order = $_GET['dir'] ?? 'DESC';
             </div>
         </div>
 
-        <!-- Billing -->
         <div class="billing-history">
             <h2>Billing History</h2>
             <form method="get" class="billing-filter">
@@ -190,7 +185,6 @@ $order = $_GET['dir'] ?? 'DESC';
                 <button type="submit">Filter</button>
             </form>
 
-            <!-- Results -->
             <div id="billing-results">
                 <table class="billing-table">
                     <thead>
@@ -222,7 +216,6 @@ $order = $_GET['dir'] ?? 'DESC';
                     </tbody>
                 </table>
 
-                <!-- Pagination -->
                 <div class="pagination">
                     <?php if ($page_num > 1): ?>
                         <a href="#" class="page-link" data-page="<?= $page_num - 1 ?>">&laquo; Prev</a>
@@ -335,7 +328,7 @@ $order = $_GET['dir'] ?? 'DESC';
     $(document).on("click", ".sort", function(e) {
         e.preventDefault();
         let col = $(this).data("col");
-        let dir = $(this).data("dir"); // already toggled by PHP
+        let dir = $(this).data("dir");
 
         let params = $("#billing-filter").serialize() + "&sort=" + col + "&dir=" + dir;
         loadBilling(params);

@@ -4,11 +4,10 @@ include '../config.php';
 // User, Product, Purchase, Sales totals 
 $userCount = $conn->query("SELECT COUNT(*) AS total FROM user")->fetch_assoc()['total'];
 $productCount = $conn->query("SELECT COUNT(*) AS total FROM product")->fetch_assoc()['total'];
-$purchaseCount = $conn->query("SELECT COUNT(*) AS total FROM stock")->fetch_assoc()['total'];
+$purchaseCount = $conn->query("SELECT COUNT(*) AS total FROM product_stocks")->fetch_assoc()['total'];
 $salesRevenue = $conn->query("SELECT IFNULL(SUM(total),0) AS revenue FROM carts WHERE status='completed'")->fetch_assoc()['revenue'];
 
-// SALES PREDICTION
-// Last 7 days revenue
+// Sales prediction & last 7 days revenue
 $last7daysSales = $conn->query("
     SELECT SUM(total) AS total
     FROM carts
@@ -33,12 +32,11 @@ if ($prev7daysSales > 0) {
 }
 $salesPrediction = ($salesPrediction >= 0 ? '+' : '') . round($salesPrediction, 2) . '%';
 
-// Recent Purchases 
 $recentPurchases = $conn->query("
-    SELECT s.created_at AS date, sp.supplier_type AS supplier, s.qty AS items
-    FROM stock s
-    LEFT JOIN supplier sp ON s.bodegero = sp.supplier_id
-    ORDER BY s.created_at DESC
+    SELECT ps.created_at AS date, sp.name AS supplier, ps.quantity AS items
+    FROM product_stocks ps
+    LEFT JOIN supplier sp ON ps.supplier_id = sp.supplier_id
+    ORDER BY ps.created_at DESC
     LIMIT 5
 ");
 
@@ -51,7 +49,7 @@ $recentSales = $conn->query("
     LIMIT 5
 ");
 
-//  Sales Trend 
+// Sales Trend 
 $salesTrend = $conn->query("
     SELECT DATE(created_at) AS sale_date, SUM(total) AS daily_total
     FROM carts
@@ -74,17 +72,18 @@ if (empty($trendData['labels'])) {
 
 // Low Stock Products 
 $lowStockProducts = $conn->query("
-    SELECT product_name, quantity 
+    SELECT product_name, total_quantity 
     FROM product 
-    WHERE quantity <= threshold
+    WHERE total_quantity <= threshold
     LIMIT 5
 ");
+
 $inventoryLabels = [];
 $inventoryValues = [];
 if ($lowStockProducts && $lowStockProducts->num_rows > 0) {
     while ($row = $lowStockProducts->fetch_assoc()) {
         $inventoryLabels[] = $row['product_name'];
-        $inventoryValues[] = $row['quantity'];
+        $inventoryValues[] = $row['total_quantity'];
     }
 }
 if (empty($inventoryLabels)) {
@@ -94,23 +93,25 @@ if (empty($inventoryLabels)) {
 
 // Supplier Stats 
 $supplierStats = $conn->query("
-    SELECT sp.name, COUNT(s.stock_id) as total_orders
-    FROM stock s
-    JOIN supplier sp ON s.bodegero = sp.supplier_id
+    SELECT sp.name, COUNT(ps.product_stock_id) AS total_orders
+    FROM product_stocks ps
+    JOIN supplier sp ON ps.supplier_id = sp.supplier_id
     GROUP BY sp.supplier_id
 ");
+
 $supplierLabels = [];
 $supplierValues = [];
-while ($row = $supplierStats->fetch_assoc()) {
-    $supplierLabels[] = $row['name'];
-    $supplierValues[] = $row['total_orders'];
-}
-if (empty($supplierLabels)) {
+if ($supplierStats && $supplierStats->num_rows > 0) {
+    while ($row = $supplierStats->fetch_assoc()) {
+        $supplierLabels[] = $row['name'];
+        $supplierValues[] = $row['total_orders'];
+    }
+} else {
     $supplierLabels = ['No Suppliers'];
     $supplierValues = [0];
 }
 
-// Optional: Next 7-day forecast per product (moving average) 
+// Next 7-day forecast per product (moving average) 
 $salesDataQuery = "
     SELECT p.product_name, DATE(c.created_at) as sale_date, SUM(ci.qty) as total_qty
     FROM cart_items ci
@@ -123,7 +124,7 @@ $salesDataQuery = "
 $result = $conn->query($salesDataQuery);
 
 $salesData = [];
-while ($row = $result->fetch_assoc()) {
+while ($result && $row = $result->fetch_assoc()) {
     $salesData[$row['product_name']]['labels'][] = $row['sale_date'];
     $salesData[$row['product_name']]['values'][] = (int)$row['total_qty'];
 }
@@ -133,7 +134,7 @@ $window = 7;
 $predictions = [];
 foreach ($salesData as $product => $data) {
     $values = $data['values'];
-    $lastDate = end($data['labels']) ?: date('Y-m-d'); // fallback
+    $lastDate = end($data['labels']) ?: date('Y-m-d');
     $date = new DateTime($lastDate);
 
     for ($i = 1; $i <= 7; $i++) {
@@ -156,11 +157,12 @@ if (empty($salesData)) {
 ?>
 
 
+
 <link rel="stylesheet" href="../css/dashboard.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<h1 class="page-title">Admin Dashboard</h1>
+<!-- <h1 class="page-title">Admin Dashboard</h1> -->
 
 <div class="cards">
     <div class="card">

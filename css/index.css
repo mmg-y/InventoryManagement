@@ -4,9 +4,14 @@
     --black: #000;
     --smokey: #100c08;
     --white: #fff;
-    --whieTwo: #ddd;
-    --whiteThree: #ccc;
+    --lightGray: #ddd;
+    --platinum: #ccc;
     --gray: #666;
+    --darkGray: #333;
+    --cyan: #EBF4F6;
+    --aqua: #37B7C3;
+    --teal: #088395;
+    --navy: #071952;
 }
 
 * {
@@ -36,46 +41,13 @@ body {
 
 .container {
     display: flex;
+    flex-direction: row; 
     width: 940px;
     height: 600px;
     background: var(--white);
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-}
-
-.left {
-    flex: 1;
-    background: url('../images/inventorybg.jpg') center/cover no-repeat;
-    position: relative;
-    color: var(--white);
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-}
-
-.overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.quote {
-    position: relative;
-    z-index: 2;
-}
-
-.quote h2 {
-    font-size: 40px;
-    margin-bottom: 10px;
-}
-
-.quote p {
-    font-size: 14px;
-    max-width: 280px;
-    line-height: 1.4;
-    color: var(--whieTwo);
 }
 
 .top-text {
@@ -89,44 +61,44 @@ body {
 }
   
 #rightPanel .logo {
+     position: absolute;
+    top: 30px;         
+    left: 40px;        
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
-    font-size: 24px;
-    font-weight: bold;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--smokey);
-    margin-bottom: 70px;
-    margin-top: -25px;
+    /* margin: 0;  */
 }
 
 #rightPanel .logo img {
-    width: 45px;  
+     width: 28px;      
     height: auto;
     display: block;
-    margin-top: 10px;
 }
 
 .right {
-    flex: 1;
+    flex: 1.1;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
+    justify-content: center; 
+    align-items: center;      
     position: relative;
     overflow: hidden;
     padding: 40px 20px;
 }
 
 .form-container {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
     width: 100%;
-    max-width: 700px;
-    height: 100%;
-    padding: 120px 40px;
-    transition: transform 0.6s ease;
+    max-width: 400px;   
+    padding: 0 20px;
+    text-align: center;
 }
 
 .form-container form {
@@ -136,15 +108,18 @@ body {
 }
 
 .form-container h1 {
-    font-size: 28px;
-    margin-bottom: 10px;
+    font-size: 24px;          
+    font-weight: 700;        
+    color: var(--smokey);
+    margin-bottom: 8px;
     text-align: center;
 }
 
 .form-container p {
-    font-size: 14px;
-    color: var(--gray);
-    margin-bottom: 20px;
+    font-size: 13px;         
+    font-weight: 400;
+    color: var(--gray);             
+    margin-bottom: 25px;
     text-align: center;
 }
 
@@ -161,9 +136,23 @@ body {
 .form-group select {
     width: 100%;
     padding: 12px;
-    border: 1px solid var(--whiteThree);
+    border: 1px solid var(--platinum);
     border-radius: 8px;
     font-size: 14px;
+    transition: all 0.3s ease;  
+    outline: none;              
+    background-color: var(--white);
+}
+
+.form-group input:hover,
+.form-group select:hover {
+    border-color: var(--lightGray);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--smokey);    
+    box-shadow: 0 0 5px rgba(16, 12, 8, 0.2); 
 }
 
 .options {
@@ -176,7 +165,7 @@ body {
 
 .options a {
     text-decoration: none;
-    color: #333;
+    color: var(--darkGray);
     font-weight: 500;
 }
 
@@ -191,7 +180,7 @@ body {
 }
 
 .btn-primary {
-    background: var(--smokey);
+    background: var(--teal);
     color: var(--white);
 }
 
@@ -220,18 +209,48 @@ body {
     z-index: 2;
 }
 
-#signup {
-    transform: translateX(100%);
-}
-
 .right.active #signin {
     transform: translateX(-100%);
 }
 
-.right.active #signup {
-    transform: translateX(0);
+.left {
+    flex: 1;
+    background: url('../images/inventorybg.jpg') center/cover no-repeat;
+    position: relative;
+    color: var(--white);
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-start; 
+    text-align: left;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.quote {
+    position: relative;
     z-index: 2;
 }
+
+.quote h2 {
+    font-size: 40px;
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+.quote p {
+    font-size: 14px;
+    max-width: 280px;
+    line-height: 1.4;
+    color: var(--whieTwo);
+    text-align: left;
+}
+
 
 @media (max-width:850px) {
     .container {

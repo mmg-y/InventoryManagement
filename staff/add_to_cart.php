@@ -16,6 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ✅ stay inside the staff layout
+// stay inside the staff layout
 header("Location: staff.php?page=dashboard");
 exit;

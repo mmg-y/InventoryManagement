@@ -1,7 +1,7 @@
 <?php
 include '../config.php';
 
-// GET PRODUCT SALES HISTORY 
+// get product sales histort
 $sql = "
  SELECT p.product_name, DATE(c.created_at) as sale_date, SUM(ci.qty) as total_qty
  FROM cart_items ci
@@ -19,7 +19,7 @@ while ($row = $result->fetch_assoc()) {
     $salesData[$row['product_name']]['values'][] = (int)$row['total_qty'];
 }
 
-// FORECAST NEXT 7 DAYS (Moving Average) 
+// forecast for the next 7 days (Moving Average) 
 $window = 7;
 $predictions = [];
 
@@ -45,16 +45,14 @@ foreach ($salesData as $product => $data) {
     }
 }
 
-// Ensure at least one dummy product if no sales 
+//  dummy product if no sales 
 if (empty($salesData)) {
     $salesData['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
     $predictions['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
 }
 
-// --- NEW AGGREGATION LOGIC FOR SINGLE CHART ---
-
 $allDates = [];
-// Collect all unique dates from historical sales and predictions
+// unique dates from historical sales and predictions
 foreach ($salesData as $data) {
     $allDates = array_merge($allDates, $data['labels']);
 }
@@ -82,7 +80,6 @@ foreach ($combinedLabels as $date) {
     $totalActualSalesData[] = $actualSum;
 
     // Sum predicted sales for this date across all products
-    // Note: Predictions only start AFTER the historical data ends
     if ($date >= $firstPredictionDate) {
         foreach ($predictions as $product => $data) {
             $key = array_search($date, $data['labels']);
@@ -92,14 +89,11 @@ foreach ($combinedLabels as $date) {
         }
         $totalPredictedSalesData[] = $predictionSum;
     } else {
-        // Pad historical dates with 'null' so the prediction line starts correctly
         $totalPredictedSalesData[] = null;
     }
 }
-// ---------------------------------------------
 
-
-// Calculate overall 7-day sales growth for dashboard 
+// Calculation of overall 7-day sales growth for dashboard 
 $totalPredicted = 0;
 $totalLastSevenDays = 0;
 
@@ -146,7 +140,7 @@ $salesPredictionPercent = $totalLastSevenDays > 0
                             label: 'Total Actual Sales',
                             data: actualData,
                             borderColor: 'blue',
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)', // Light blue fill
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
                             fill: true,
                             tension: 0.3
                         },
@@ -155,7 +149,7 @@ $salesPredictionPercent = $totalLastSevenDays > 0
                             data: predictedData,
                             borderColor: 'orange',
                             borderDash: [5, 5],
-                            backgroundColor: 'transparent', // No fill for predicted line
+                            backgroundColor: 'transparent',
                             fill: false,
                             tension: 0.3
                         }

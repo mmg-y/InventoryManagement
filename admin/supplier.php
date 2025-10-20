@@ -1,6 +1,7 @@
 <?php
 include '../config.php';
 
+//handdling of form sumbission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_supplier'])) {
     $name = $_POST['name'];
     $contact = $_POST['contact'];

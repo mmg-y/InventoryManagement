@@ -4,33 +4,74 @@
     --black: #000;
     --smokey: #100c08;
     --white: #fff;
-    --blue: #102C57;
-    --whiteOne: #f6f7fb;
-    --whiteTwo: #eee;
-    --whiteThree: #ccc;
-    --darkGray: #333;
+    --ghostWhite: #e5e7eb;
+    --platinum: #e0f2fe;
+    --silver: #f3f4f6;
+    --gray: #6b7280;
     --lightGray: #555;
+    --darkGray: #333;
+    --cyan: #EBF4F6;
+    --aqua: #37B7C3;
+    --teal: #088395;
+    --navy: #071952;
 }
 
 * {
     font-family: "Poppins", sans-serif;
 }
 
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar.collapsed~.sales-record {
+    margin-left: 80px;
+    width: calc(100% - 80px);
+}
+
+.sidebar.collapsed:hover~.sales-record {
+    margin-left: 270px;
+    width: calc(100% - 270px);
+}
+
+.page-content.sales-record {
+    position: absolute;          
+    top: 70px;                   
+    left: 285px;                
+    right: 20px;                    
+    bottom: 0;
+    padding: 30px 40px;
+    transition: left 0.25s ease, right 0.25s ease, width 0.25s ease;
+    /* background: var(--silver);   */
+    overflow-y: auto;
+}
+
 .main h1 {
     margin-bottom: 20px;
-    /* font-size: 27px; */
+    font-size: 1.8rem;
+    color: var(--darkGray);
 }
 
 .table-container {
     background: var(--white);
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    overflow-x: auto;
 }
 
-.table-container table tr:hover {
-    background-color: #f1f5f9;
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
 }
+
+/* .table-container table tr:hover {
+    background-color: #f1f5f9;
+} */
 
 th a {
     cursor: pointer;
@@ -47,16 +88,23 @@ table {
     border-collapse: collapse;
 }
 
-th,
-td {
-    padding: 12px 15px;
+.table-container th,
+.table-container td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e5e7eb;
     text-align: left;
-    border-bottom: 1px solid var(--whiteOne);
 }
 
-th {
-    background: var(--whiteTwo);
-    font-weight: bold;
+td[colspan="8"] {
+    text-align: center;
+    font-style: italic;
+    color: var(--gray);
+}
+
+.table-container th {
+    background: var(--platinum);
+    font-weight: 600;
+    color: var(--darkGray);
 }
 
 tr:hover {
@@ -77,28 +125,27 @@ th a:hover {
 }
 
 .actions-bar {
+    width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     margin-bottom: 15px;
-    gap: 10px;
+    gap: 15px;
+    flex-wrap: wrap;
 }
 
 .search-form {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex: 1;
-    margin-bottom: 15px;
+    gap: 10px;
 }
 
 .search-form input {
     padding: 8px 14px;
-    border: 1px solid var(--whiteThree);
+    border: 1px solid var(--ghostWhite);
     border-radius: 20px;
     outline: none;
-    width: 100%;
-    max-width: 300px;
+    width: 250px;
     transition: all 0.3s ease;
 }
 
@@ -108,7 +155,7 @@ th a:hover {
 }
 
 .search-form button {
-    background: var(--blue);
+    background: var(--aqua);
     border: none;
     color: var(--white);
     padding: 8px 12px;
@@ -189,11 +236,15 @@ th a:hover {
 .grand-total {
     margin-top: 15px;
     text-align: right;
-    font-weight: bold;
+    font-weight: 600;
+    color: var(--darkGray);
 }
 
 .pagination {
     margin-top: 15px;
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
 }
 
 .pagination a {
@@ -204,8 +255,9 @@ th a:hover {
     border: 1px solid #ccc;
 }
 
-.pagination a.active {
-    background-color: #102C57;
+.pagination a.active,
+.pagination a:hover {
+    background-color: var(--teal);
     color: #fff;
-    border-color: #102C57;
+    border-color: var(--teal);
 }

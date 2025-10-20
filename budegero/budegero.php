@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
+if (!isset($_SESSION['username']) || $_SESSION['type'] !== "warehouse_man") {
     header("Location: index.php");
     exit;
 }
@@ -8,6 +8,7 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,12 +22,14 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
             text-decoration: none;
             color: inherit;
         }
+
         .sidebar a:visited,
         .sidebar a:active {
             color: inherit;
         }
     </style>
 </head>
+
 <body>
     <aside class="sidebar">
         <div class="logo">
@@ -106,10 +109,12 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
             <h2>Edit Profile</h2>
 
             <?php if (isset($_SESSION['success'])): ?>
-                <div class="alert success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+                <div class="alert success"><?= $_SESSION['success'];
+                                            unset($_SESSION['success']); ?></div>
             <?php endif; ?>
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert error"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+                <div class="alert error"><?= $_SESSION['error'];
+                                            unset($_SESSION['error']); ?></div>
             <?php endif; ?>
 
             <form action="update_profile_budegero.php" method="POST" enctype="multipart/form-data" id="profileForm">
@@ -151,7 +156,9 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
     <script>
         const profile = document.getElementById("profileMenu");
         profile.addEventListener("click", () => profile.classList.toggle("active"));
-        document.addEventListener("click", (e) => { if (!profile.contains(e.target)) profile.classList.remove("active"); });
+        document.addEventListener("click", (e) => {
+            if (!profile.contains(e.target)) profile.classList.remove("active");
+        });
 
         const profileLink = document.getElementById('profileLink');
         const profileModal = document.getElementById('profileModal');
@@ -185,4 +192,5 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
         }
     </script>
 </body>
+
 </html>
