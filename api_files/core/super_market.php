@@ -4,7 +4,6 @@
         private $conn;
         private $table = 'user';
 
-        // user properties
         public $username;
         public $password;
 
@@ -16,7 +15,6 @@
 
 
         public function login() {
-            // First, fetch user by username only
             $query = "SELECT id, first_name, last_name, contact, email, username, password, type, created_at
                     FROM " . $this->table . " 
                     WHERE username = ? 
@@ -35,7 +33,7 @@
                 if (password_verify($this->password, $user['password'])) {
                     // remove password before returning
                     unset($user['password']);
-                    return $user;   // return user array
+                    return $user;   
                 }
             }
             return null;  // login failed
@@ -99,7 +97,7 @@
         }
 
 
-        // --- NEW: GET PRODUCTS WITH STATUS ---
+        //GET PRODUCTS WITH STATUS
         public function getProductsWithStatus() {
             $query = "
                 SELECT 
@@ -135,7 +133,7 @@
         }
 
 
-        // --- NEW: Get Warehouse Inventory (Batches + Products + Suppliers) ---
+        //Get Warehouse Inventory (Batches + Products + Suppliers)
         public function getWarehouseInventory() {
             $query = "
                 SELECT 
@@ -171,7 +169,9 @@
         public function updateBatchStatus($batchId, $status)
         {
             try {
-                // 1️⃣ Get product_id of the batch being updated
+                $this->conn->begin_transaction();
+
+                //Get product_id of the batch being updated
                 $queryGetProduct = "SELECT product_id FROM product_stocks WHERE product_stock_id = ?";
                 $stmt = $this->conn->prepare($queryGetProduct);
                 $stmt->bind_param('i', $batchId);
@@ -183,26 +183,24 @@
                 }
 
                 $row = $result->fetch_assoc();
-                $productId = $row['product_id'];
+                $productId = (int)$row['product_id'];
 
-                // 2️⃣ FIFO: If setting to 'active', deactivate currently active batch(es) of the same product
+                //FIFO: If setting to 'active', deactivate currently active batches of the same product
                 if (strtolower($status) === 'active') {
                     $queryDeactivate = "
                         UPDATE product_stocks 
                         SET status = 'pulled out', updated_at = NOW() 
                         WHERE product_id = ? AND status = 'active' AND product_stock_id != ?";
-                    
                     $stmtDeactivate = $this->conn->prepare($queryDeactivate);
                     $stmtDeactivate->bind_param('ii', $productId, $batchId);
                     $stmtDeactivate->execute();
                 }
 
-                // 3️⃣ Update the selected batch's status
+                //Update the selected batch's status
                 $queryUpdate = "
                     UPDATE product_stocks 
                     SET status = ?, updated_at = NOW() 
                     WHERE product_stock_id = ?";
-                
                 $stmtUpdate = $this->conn->prepare($queryUpdate);
                 $stmtUpdate->bind_param('si', $status, $batchId);
 
@@ -210,35 +208,55 @@
                     throw new Exception("Failed to update batch: " . $stmtUpdate->error);
                 }
 
-                // 4️⃣ Recalculate total_quantity from all active batches
+                //Recalculate totals and average cost from all active batches
                 $queryRecalc = "
-                    SELECT COALESCE(SUM(remaining_qty), 0) AS total_qty
+                    SELECT 
+                        COALESCE(SUM(remaining_qty), 0) AS total_qty,
+                        COALESCE(AVG(cost_price), 0) AS avg_cost
                     FROM product_stocks
                     WHERE product_id = ? AND status = 'active'
                 ";
                 $stmtRecalc = $this->conn->prepare($queryRecalc);
                 $stmtRecalc->bind_param('i', $productId);
                 $stmtRecalc->execute();
-                $resQty = $stmtRecalc->get_result()->fetch_assoc();
-                $totalQty = $resQty['total_qty'];
+                $res = $stmtRecalc->get_result()->fetch_assoc();
+                $totalQty = (float)$res['total_qty'];
+                $avgCost = (float)$res['avg_cost'];
 
-                // 5️⃣ Update the product table
-                $queryUpdateProduct = "
-                    UPDATE product
-                    SET total_quantity = ?, updated_at = NOW()
-                    WHERE product_id = ?
-                ";
-                $stmtUpdateProduct = $this->conn->prepare($queryUpdateProduct);
-                $stmtUpdateProduct->bind_param('ii', $totalQty, $productId);
+                //Only update the product total & cost price if status is 'active'
+                if (strtolower($status) === 'active') {
+                    $queryUpdateProduct = "
+                        UPDATE product p
+                        JOIN retail_variables r ON p.retail_id = r.retail_id
+                        SET 
+                            p.total_quantity = ?, 
+                            p.cost_price = ROUND((? + (? * r.percent / 100)), 2),
+                            p.updated_at = NOW()
+                        WHERE p.product_id = ?
+                    ";
+                    $stmtUpdateProduct = $this->conn->prepare($queryUpdateProduct);
+                    $stmtUpdateProduct->bind_param('dddi', $totalQty, $avgCost, $avgCost, $productId);
 
-                if (!$stmtUpdateProduct->execute()) {
-                    throw new Exception("Failed to update product quantity: " . $stmtUpdateProduct->error);
+                    if (!$stmtUpdateProduct->execute()) {
+                        throw new Exception("Failed to update product cost/quantity: " . $stmtUpdateProduct->error);
+                    }
+                } else {
+                    //Just recalclate total quantity for active batches (no cost update)
+                    $queryUpdateProduct = "
+                        UPDATE product
+                        SET total_quantity = ?, updated_at = NOW()
+                        WHERE product_id = ?
+                    ";
+                    $stmtUpdateProduct = $this->conn->prepare($queryUpdateProduct);
+                    $stmtUpdateProduct->bind_param('di', $totalQty, $productId);
+                    $stmtUpdateProduct->execute();
                 }
 
-                // 6️⃣ Return success
+                $this->conn->commit();
                 return true;
 
             } catch (Exception $e) {
+                $this->conn->rollback();
                 error_log("updateBatchStatus error: " . $e->getMessage());
                 return false;
             }
@@ -317,7 +335,7 @@
 
 
 
-         // --- NEW: Get all products for dropdown ---
+         //Get all products for dropdown
         public function getAllProducts() {
             $query = "
                 SELECT 
@@ -344,7 +362,7 @@
             return $products;
         }
 
-        // --- NEW: Get suppliers for a specific product ---
+        //Get suppliers for a specific product
         public function getSuppliersByProduct($productId) {
             $query = "
                 SELECT 
@@ -375,7 +393,7 @@
             return $suppliers;
         }
 
-        // --- NEW: Get default cost price for product-supplier combination ---
+        //Get default cost price for product-supplier combination
         public function getDefaultCostPrice($productId, $supplierId) {
             $query = "
                 SELECT default_cost_price 
@@ -399,8 +417,6 @@
             return 0;
         }
 
-        // ... your existing methods (login, getCategoriesAndItems, etc.) ...
-
         public function createNewOrder($productId, $supplierId, $quantity, $costPrice, $remarks) {
             // Generate a unique batch number
             $batchNumber = 'BATCH-' . date('Ymd-His') . '-' . str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
@@ -419,7 +435,7 @@
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, 'ordered', NOW())";
 
             $stmt = $this->conn->prepare($query);
-            // Note: remaining_qty should be the same as quantity initially for new orders
+            //remaining_qty should be the same as quantity initially for new orders
             $stmt->bind_param('iisidss', 
                 $productId, 
                 $supplierId, 
@@ -445,68 +461,511 @@
         }
 
         public function markOrderAsArrived($orderId) {
-        // Start transaction
-        $this->conn->begin_transaction();
+            // Start transaction
+            $this->conn->begin_transaction();
 
-        try {
-            // First query: Update product_stocks status and set remaining_qty = quantity
-            $query1 = "UPDATE product_stocks 
-                    SET status = 'received', 
-                        remaining_qty = quantity, 
-                        updated_at = NOW() 
-                    WHERE product_stock_id = ?";
-            
-            $stmt1 = $this->conn->prepare($query1);
-            $orderId = htmlspecialchars(strip_tags($orderId));
-            $stmt1->bind_param('i', $orderId);
-            
-            if (!$stmt1->execute()) {
-                throw new Exception("Failed to update product_stocks: " . $stmt1->error);
+            try {
+                //Update the batch itself
+                $query1 = "UPDATE product_stocks 
+                        SET status = 'received', 
+                            remaining_qty = quantity, 
+                            updated_at = NOW() 
+                        WHERE product_stock_id = ?";
+                $stmt1 = $this->conn->prepare($query1);
+                $stmt1->bind_param('i', $orderId);
+                if (!$stmt1->execute()) {
+                    throw new Exception("Failed to update product_stocks: " . $stmt1->error);
+                }
+
+                //Commit transaction
+                $this->conn->commit();
+
+                return [
+                    'success' => true,
+                    'message' => 'Order marked as arrived successfully and product total recalculated.'
+                ];
+
+            } catch (Exception $e) {
+                $this->conn->rollback();
+                return [
+                    'success' => false,
+                    'message' => 'Failed to mark order as arrived: ' . $e->getMessage()
+                ];
             }
-
-            // Second query: Update product total_quantity
-            $query2 = "UPDATE product 
-                    SET total_quantity = total_quantity + (
-                        SELECT quantity 
-                        FROM product_stocks 
-                        WHERE product_stock_id = ?
-                    ),
-                    updated_at = NOW()
-                    WHERE product_id = (
-                        SELECT product_id 
-                        FROM product_stocks 
-                        WHERE product_stock_id = ?
-                    )";
-            
-            $stmt2 = $this->conn->prepare($query2);
-            $stmt2->bind_param('ii', $orderId, $orderId);
-            
-            if (!$stmt2->execute()) {
-                throw new Exception("Failed to update product quantity: " . $stmt2->error);
-            }
-
-            // Commit transaction
-            $this->conn->commit();
-
-            return [
-                'success' => true,
-                'message' => 'Order marked as arrived successfully'
-            ];
-
-        } catch (Exception $e) {
-            // Rollback transaction on error
-            $this->conn->rollback();
-            
-            return [
-                'success' => false,
-                'message' => 'Failed to mark order as arrived: ' . $e->getMessage()
-            ];
         }
-    }
 
-        
+        public function getExistingOrder($userId){
+
+            $query = "
+                SELECT * FROM carts where carts.seller = ? AND status = 'pending'
+            ";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+
+            $result = $stmt->get_result();
+            if ($result->num_rows > 0) {
+
+                $query2 = "
+                    SELECT 
+                        c.cart_id,
+                        c.seller,
+                        c.status AS cart_status,
+                        c.order_code,
+                        c.total,
+
+                        ci.cart_items_id,
+                        ci.product_id,
+                        ci.qty,
+                        ci.price,
+                        ci.batch_id,
+                        ci.earning,
+                        ci.created_at AS item_created_at,
+                        ci.updated_at AS item_updated_at,
+
+                        p.product_code,
+                        p.product_name,
+                        p.category,
+                        p.retail_id,
+                        p.total_quantity,
+                        p.reserved_qty,
+                        p.threshold_id,
+                        p.threshold,
+                        p.created_at AS product_created_at,
+                        p.updated_at AS product_updated_at
+
+                    FROM carts AS c
+                    LEFT JOIN cart_items AS ci 
+                        ON c.cart_id = ci.cart_id
+                    LEFT JOIN product AS p 
+                        ON ci.product_id = p.product_id
+                    WHERE c.seller = ?;
+
+                ";
+                $stmt2 = $this->conn->prepare($query2);
+                $stmt2->bind_param('i', $userId);
+                $stmt2->execute();
+                $result2 = $stmt2->get_result();
+                
+                $cart_items = [];
+                while ($row = $result2->fetch_assoc()) {
+                    $cart_items[] = [
+                        "cartId" => $row["cart_id"],
+                        "seller" => $row["seller"],
+                        "cartStatus" => $row["cart_status"],
+                        "orderCode" => $row["order_code"],
+                        "total" => $row["total"],
+                        "cartItemsId" => $row["cart_items_id"],
+                        "productId" => $row["product_id"],
+                        "qty" => $row["qty"],
+                        "price" => $row["price"],
+                        "batchId" => $row["batch_id"],
+                        "earning" => $row["earning"],
+                        "createdAt" => $row["item_created_at"],
+                        "updatedAt" => $row["item_updated_at"],
+                        "productCode" => $row["product_code"],
+                        "productName" => $row["product_name"],
+                        "category" => $row["category"],
+                        "retailId" => $row["retail_id"],
+                        "totalQuantity" => $row["total_quantity"],
+                        "reservedQty" => $row["reserved_qty"],
+                        "thresholdId" => $row["threshold_id"],
+                        "threshold" => $row["threshold"],
+                        "productCreatedAt" => $row["product_created_at"],
+                        "productUpdatedAt" => $row["product_updated_at"]
+                    ];
+                }
+
+                return $cart_items;
+            }
+
+            else {
+                $today = date('Ymd');
+                $query = "SELECT order_code
+                            FROM carts
+                            ORDER BY cart_id DESC
+                            LIMIT 1;";
+                $stmt = $this->conn->prepare($query);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $nextCode = '';
+                if ($result->num_rows > 0) {
+                    $row = $result->fetch_assoc();
+                    $lastCode = $row['order_code'];
+
+                    $parts = explode('-', $lastCode);
+                    $lastNumber = end($parts);
+
+                    $nextNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+
+                    $nextCode = $today . '-' . $nextNumber;
+                }
+                else{
+                    $nextCode = $today . '-0001';
+                }
+
+
+                $query2 = "INSERT INTO `carts` (`seller`, `status`, `order_code`, `total`, `failed_desc`, `total_earning`, `created_at`, `updated_at`) 
+                VALUES (?, 'pending', ?, 0, NULL, 0, current_timestamp(), current_timestamp()) ";
+                $stmt2 = $this->conn->prepare($query2);
+                $stmt2->bind_param('is', $userId, $nextCode);
+                $stmt2->execute();
+
+                $query3 = "
+                    SELECT 
+                        c.cart_id,
+                        c.seller,
+                        c.status AS cart_status,
+                        c.order_code,
+                        c.total,
+
+                        ci.cart_items_id,
+                        ci.product_id,
+                        ci.qty,
+                        ci.price,
+                        ci.batch_id,
+                        ci.earning,
+                        ci.created_at AS item_created_at,
+                        ci.updated_at AS item_updated_at,
+
+                        p.product_code,
+                        p.product_name,
+                        p.category,
+                        p.retail_id,
+                        p.total_quantity,
+                        p.reserved_qty,
+                        p.threshold_id,
+                        p.threshold,
+                        p.created_at AS product_created_at,
+                        p.updated_at AS product_updated_at
+
+                    FROM carts AS c
+                    LEFT JOIN cart_items AS ci 
+                        ON c.cart_id = ci.cart_id
+                    LEFT JOIN product AS p 
+                        ON ci.product_id = p.product_id
+                    WHERE c.seller = ?;
+                ";
+                $stmt3 = $this->conn->prepare($query3);
+                $stmt3->bind_param('i', $userId);
+                $stmt3->execute();
+                $result2 = $stmt3->get_result();
+                
+                $cart_items = [];
+
+
+                while ($row = $result2->fetch_assoc()) {
+                    $cart_items[] = [
+                        "cartId" => $row["cart_id"],
+                        "seller" => $row["seller"],
+                        "cartStatus" => $row["cart_status"],
+                        "orderCode" => $row["order_code"],
+                        "total" => $row["total"],
+                        "cartItemsId" => $row["cart_items_id"],
+                        "productId" => $row["product_id"],
+                        "qty" => $row["qty"],
+                        "price" => $row["price"],
+                        "batchId" => $row["batch_id"],
+                        "earning" => $row["earning"],
+                        "createdAt" => $row["item_created_at"],
+                        "updatedAt" => $row["item_updated_at"],
+                        "productCode" => $row["product_code"],
+                        "productName" => $row["product_name"],
+                        "category" => $row["category"],
+                        "retailId" => $row["retail_id"],
+                        "totalQuantity" => $row["total_quantity"],
+                        "reservedQty" => $row["reserved_qty"],
+                        "thresholdId" => $row["threshold_id"],
+                        "threshold" => $row["threshold"],
+                        "productCreatedAt" => $row["product_created_at"],
+                        "productUpdatedAt" => $row["product_updated_at"]
+                    ];
+                }
+
+                return $cart_items;
+            }
+        }
+
+        public function getProductByQr($product_code, $user_id) {
+
+                //Get product details
+                $query = "
+                    SELECT p.*, r.percent 
+                    FROM product p
+                    LEFT JOIN retail_variables r ON p.retail_id = r.retail_id
+                    WHERE p.product_code = ?
+                ";
+                $stmt = $this->conn->prepare($query);
+                $stmt->bind_param('s', $product_code);
+                $stmt->execute();
+                $result = $stmt->get_result();
+
+                if ($result->num_rows === 0) {
+                    throw new Exception("Product not found.");
+                }
+
+                $row = $result->fetch_assoc();
+                $productId = $row["product_id"];
+                $retailPercent = $row["percent"] ?? 0;
+
+                //Get the latest or active batch for this product
+                $queryBatch = "
+                    SELECT product_stock_id, cost_price, remaining_qty
+                    FROM product_stocks
+                    WHERE product_id = ? AND status = 'active'
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                ";
+                $stmtBatch = $this->conn->prepare($queryBatch);
+                $stmtBatch->bind_param('i', $productId);
+                $stmtBatch->execute();
+                $batchRes = $stmtBatch->get_result();
+
+                if ($batchRes->num_rows === 0) {
+                    throw new Exception("No active batch found for this product.");
+                }
+
+                $batchRow = $batchRes->fetch_assoc();
+                $batchId = $batchRow['product_stock_id'];
+                $costPrice = (float) $batchRow['cost_price'];
+
+                //Compute price and earning
+                $price = $costPrice + ($costPrice * ($retailPercent / 100));
+                $earning = $price - $costPrice;
+
+                //Get the user's active cart (pending)
+                $queryCart = "
+                    SELECT cart_id
+                    FROM carts
+                    WHERE seller = ? AND status = 'pending'
+                    ORDER BY cart_id DESC
+                    LIMIT 1
+                ";
+                if (!$user_id) throw new Exception("Missing user_id.");
+
+                $stmtCart = $this->conn->prepare($queryCart);
+                $stmtCart->bind_param('i', $user_id);
+                $stmtCart->execute();
+                $cartRes = $stmtCart->get_result();
+
+                if ($cartRes->num_rows === 0) {
+                    throw new Exception("No active cart found for user.");
+                }
+
+                $cartRow = $cartRes->fetch_assoc();
+                $cartId = $cartRow['cart_id'];
+
+                //Insert new item into cart_items
+                $queryInsert = "
+                    INSERT INTO cart_items 
+                        (cart_id, product_id, qty, price, batch_id, cost_price, earning, created_at, updated_at)
+                    VALUES (?, ?, 1, ?, ?, ?, ?, NOW(), NOW())
+                ";
+                $stmtInsert = $this->conn->prepare($queryInsert);
+                $stmtInsert->bind_param('iidddd', $cartId, $productId, $price, $batchId, $costPrice, $earning);
+                if (!$stmtInsert->execute()) {
+                    throw new Exception("Failed to insert item: " . $stmtInsert->error);
+                }
+
+                //Update product stock quantities
+                $queryUpdate = "
+                    UPDATE product
+                    SET reserved_qty = reserved_qty + 1,
+                        total_quantity = total_quantity - 1,
+                        updated_at = NOW()
+                    WHERE product_id = ?
+                ";
+                $stmtUpdate = $this->conn->prepare($queryUpdate);
+                $stmtUpdate->bind_param('i', $productId);
+                if (!$stmtUpdate->execute()) {
+                    throw new Exception("Failed to update product stock: " . $stmtUpdate->error);
+                }
+
+                //update product_stocks remaining_qty
+                $queryUpdateStock = "
+                    UPDATE product_stocks
+                    SET remaining_qty = remaining_qty - 1,
+                        updated_at = NOW()
+                    WHERE product_stock_id = ?
+                ";
+                $stmtUpdateStock = $this->conn->prepare($queryUpdateStock);
+                $stmtUpdateStock->bind_param('i', $batchId);
+                $stmtUpdateStock->execute(); // don't need to throw unless critical
+                $addToCart = [];
+                //Return product info
+                $addToCart[] = [
+                    "productId" => $productId,
+                    "productCode" => $row["product_code"],
+                    "productName" => $row["product_name"],
+                    "category" => $row["category"],
+                    "retailId" => $row["retail_id"],
+                    "costPrice" => $costPrice,
+                    "price" => $price,
+                    "earning" => $earning,
+                    "batchId" => $batchId,
+                    "totalQuantity" => $row["total_quantity"] - 1,
+                    "reservedQty" => $row["reserved_qty"] + 1,
+                    "threshold" => $row["threshold"],
+                    "created_at" => $row["created_at"],
+                    "updated_at" => date('Y-m-d H:i:s')
+                ];
+
+                return $addToCart;
 
 
 
+        }
+
+
+        public function updateCartItem($cart_items_id, $action) {
+            try {
+                // Validate input
+                if (!$cart_items_id || !in_array($action, ['increment', 'decrement', 'remove'])) {
+                    throw new Exception("Invalid parameters or action.");
+                }
+
+                //Get cart item and product info
+                $querySelect = "
+                    SELECT 
+                        ci.cart_items_id,
+                        ci.product_id,
+                        ci.qty,
+                        ci.price,
+                        ci.cost_price,
+                        ci.batch_id,
+                        p.total_quantity,
+                        p.reserved_qty
+                    FROM cart_items ci
+                    INNER JOIN product p ON ci.product_id = p.product_id
+                    WHERE ci.cart_items_id = ?
+                ";
+                $stmt = $this->conn->prepare($querySelect);
+                $stmt->bind_param('i', $cart_items_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+
+                if ($result->num_rows === 0) {
+                    throw new Exception("Cart item not found.");
+                }
+
+                $item = $result->fetch_assoc();
+
+                $productId = $item["product_id"];
+                $batchId = $item["batch_id"];
+                $oldQty = (int)$item["qty"];
+                $pricePerUnit = (float)$item["price"];
+                $costPrice = (float)$item["cost_price"];
+
+                $newQty = $oldQty;
+                $qtyDiff = 0;
+
+                //Determine the action
+                if ($action === 'increment') {
+                    $newQty = $oldQty + 1;
+                    $qtyDiff = 1;
+
+                } elseif ($action === 'decrement') {
+                    if ($oldQty <= 1) {
+                        // If qty is 1, treat as remove and restore that 1 to stock
+                        $qtyDiff = -$oldQty; // return all quantity back
+                        $action = 'remove';
+                    } else {
+                        $newQty = $oldQty - 1;
+                        $qtyDiff = -1;
+                    }
+                } elseif ($action === 'remove') {
+                    // Remove entire item, return all qty back to stock
+                    $qtyDiff = -$oldQty;
+                }
+
+                //Begin transaction
+                $this->conn->begin_transaction();
+
+                //Handle updates per action
+                if ($action === 'increment' || $action === 'decrement') {
+
+                    $newEarning = ($pricePerUnit - $costPrice) * $newQty;
+
+                    //Update cart item
+                    $queryUpdateCart = "
+                        UPDATE cart_items
+                        SET qty = ?, earning = ?, updated_at = NOW()
+                        WHERE cart_items_id = ?
+                    ";
+                    $stmtUpdateCart = $this->conn->prepare($queryUpdateCart);
+                    $stmtUpdateCart->bind_param('idi', $newQty, $newEarning, $cart_items_id);
+
+                    if (!$stmtUpdateCart->execute()) {
+                        throw new Exception("Failed to update cart item: " . $stmtUpdateCart->error);
+                    }
+
+                } elseif ($action === 'remove') {
+
+                    //Delete the cart item entirely
+                    $queryDelete = "DELETE FROM cart_items WHERE cart_items_id = ?";
+                    $stmtDelete = $this->conn->prepare($queryDelete);
+                    $stmtDelete->bind_param('i', $cart_items_id);
+
+                    if (!$stmtDelete->execute()) {
+                        throw new Exception("Failed to remove cart item: " . $stmtDelete->error);
+                    }
+                }
+
+                //Update product stock quantities
+                $queryUpdateProduct = "
+                    UPDATE product
+                    SET 
+                        reserved_qty = reserved_qty + ?,
+                        total_quantity = total_quantity - ?,
+                        updated_at = NOW()
+                    WHERE product_id = ?
+                ";
+                $stmtUpdateProduct = $this->conn->prepare($queryUpdateProduct);
+                $stmtUpdateProduct->bind_param('iii', $qtyDiff, $qtyDiff, $productId);
+
+                if (!$stmtUpdateProduct->execute()) {
+                    throw new Exception("Failed to update product stock: " . $stmtUpdateProduct->error);
+                }
+
+                //Update batch stock too
+                $queryUpdateBatch = "
+                    UPDATE product_stocks
+                    SET remaining_qty = remaining_qty - ?, updated_at = NOW()
+                    WHERE product_stock_id = ?
+                ";
+                $stmtUpdateBatch = $this->conn->prepare($queryUpdateBatch);
+                $stmtUpdateBatch->bind_param('ii', $qtyDiff, $batchId);
+                $stmtUpdateBatch->execute(); // not critical
+
+                //Commit transaction
+                $this->conn->commit();
+
+                $updatedCart = [];
+                $updatedCart[] = [
+                    "cartItemId" => $cart_items_id,
+                    "productId" => $productId,
+                    "batchId" => $batchId,
+                    "oldQty" => $oldQty,
+                    "newQty" => $action === 'remove' ? 0 : $newQty,
+                    "pricePerUnit" => $pricePerUnit,
+                    "totalPrice" => $action === 'remove' ? 0 : ($pricePerUnit * $newQty),
+                    "earning" => $action === 'remove' ? 0 : ($pricePerUnit - $costPrice) * $newQty,
+                    "action" => $action,
+                    "updatedAt" => date('Y-m-d H:i:s')
+                ];
+
+                return $updatedCart;
+
+            } catch (Exception $e) {
+                if ($this->conn->in_transaction) {
+                    $this->conn->rollback();
+                }
+
+                return [
+                    "status" => "error",
+                    "message" => $e->getMessage()
+                ];
+            }
+        }
 
     }
