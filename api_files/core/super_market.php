@@ -539,7 +539,7 @@
                         ON c.cart_id = ci.cart_id
                     LEFT JOIN product AS p 
                         ON ci.product_id = p.product_id
-                    WHERE c.seller = ?;
+                    WHERE c.seller = ? AND c.status = 'pending';
 
                 ";
                 $stmt2 = $this->conn->prepare($query2);
@@ -644,7 +644,7 @@
                         ON c.cart_id = ci.cart_id
                     LEFT JOIN product AS p 
                         ON ci.product_id = p.product_id
-                    WHERE c.seller = ?;
+                    WHERE c.seller = ? AND c.status = 'pending';
                 ";
                 $stmt3 = $this->conn->prepare($query3);
                 $stmt3->bind_param('i', $userId);
@@ -781,16 +781,16 @@
                     throw new Exception("Failed to update product stock: " . $stmtUpdate->error);
                 }
 
-                //update product_stocks remaining_qty
-                $queryUpdateStock = "
-                    UPDATE product_stocks
-                    SET remaining_qty = remaining_qty - 1,
-                        updated_at = NOW()
-                    WHERE product_stock_id = ?
-                ";
-                $stmtUpdateStock = $this->conn->prepare($queryUpdateStock);
-                $stmtUpdateStock->bind_param('i', $batchId);
-                $stmtUpdateStock->execute(); // don't need to throw unless critical
+                // //update product_stocks remaining_qty
+                // $queryUpdateStock = "
+                //     UPDATE product_stocks
+                //     SET remaining_qty = remaining_qty - 1,
+                //         updated_at = NOW()
+                //     WHERE product_stock_id = ?
+                // ";
+                // $stmtUpdateStock = $this->conn->prepare($queryUpdateStock);
+                // $stmtUpdateStock->bind_param('i', $batchId);
+                // $stmtUpdateStock->execute(); // don't need to throw unless critical
                 $addToCart = [];
                 //Return product info
                 $addToCart[] = [
@@ -967,5 +967,115 @@
                 ];
             }
         }
+
+        public function checkoutCart($userId, $totalAmount, $totalEarning, $items) {
+            try {
+                if (empty($userId) || empty($items)) {
+                    throw new Exception("Missing required checkout data.");
+                }
+
+                $this->conn->begin_transaction();
+
+                //Insert new record in `sales`
+                $querySales = "
+                    INSERT INTO sales (total_amount, total_earning, sale_date, cashier_id, remarks)
+                    VALUES (?, ?, NOW(), ?, 'Checkout completed')
+                ";
+                $stmtSales = $this->conn->prepare($querySales);
+                $stmtSales->bind_param('ddi', $totalAmount, $totalEarning, $userId);
+
+                if (!$stmtSales->execute()) {
+                    throw new Exception("Failed to create sale: " . $stmtSales->error);
+                }
+
+                $saleId = $this->conn->insert_id;
+
+                //Insert each item into `sales_items` table
+                $queryItems = "
+                    INSERT INTO sales_items 
+                        (sale_id, product_id, batch_id, quantity, unit_price, cost_price, earning, remarks)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'Sold from POS')
+                ";
+                $stmtItem = $this->conn->prepare($queryItems);
+
+                foreach ($items as $item) {
+                    // support both array and object
+                    if (is_object($item)) {
+                        $productId  = (int)$item->product_id;
+                        $batchId    = (int)$item->batch_id;
+                        $quantity   = (int)$item->quantity;
+                        $unitPrice  = (float)$item->unit_price;
+                        $costPrice  = isset($item->cost_price) ? (float)$item->cost_price : 0;
+                        $earning    = isset($item->earning) ? (float)$item->earning : ($unitPrice - $costPrice);
+                    } else {
+                        $productId  = (int)$item['product_id'];
+                        $batchId    = (int)$item['batch_id'];
+                        $quantity   = (int)$item['quantity'];
+                        $unitPrice  = (float)$item['unit_price'];
+                        $costPrice  = isset($item['cost_price']) ? (float)$item['cost_price'] : 0;
+                        $earning    = isset($item['earning']) ? (float)$item['earning'] : ($unitPrice - $costPrice);
+                    }
+
+                    $stmtItem->bind_param('iiiiddd', $saleId, $productId, $batchId, $quantity, $unitPrice, $costPrice, $earning);
+
+                    if (!$stmtItem->execute()) {
+                        throw new Exception("Failed to insert sale item: " . $stmtItem->error);
+                    }
+
+                    //Update product totals
+                    $queryUpdateProduct = "
+                        UPDATE product
+                        SET reserved_qty = reserved_qty - ?, 
+                            updated_at = NOW()
+                        WHERE product_id = ?
+                    ";
+                    $stmtUpdateProduct = $this->conn->prepare($queryUpdateProduct);
+                    $stmtUpdateProduct->bind_param('ii', $quantity, $productId);
+                    $stmtUpdateProduct->execute();
+
+                    //Update batch remaining_qty
+                    $queryUpdateStock = "
+                        UPDATE product_stocks
+                        SET remaining_qty = remaining_qty - ?, updated_at = NOW()
+                        WHERE product_stock_id = ?
+                    ";
+                    $stmtUpdateStock = $this->conn->prepare($queryUpdateStock);
+                    $stmtUpdateStock->bind_param('ii', $quantity, $batchId);
+                    $stmtUpdateStock->execute();
+                }
+
+                //Mark users cart as completed
+                $queryUpdateCart = "
+                    UPDATE carts
+                    SET status = 'completed', total = ?, total_earning = ?, updated_at = NOW()
+                    WHERE seller = ? AND status = 'pending'
+                ";
+                $stmtUpdateCart = $this->conn->prepare($queryUpdateCart);
+                $stmtUpdateCart->bind_param('ddi', $totalAmount, $totalEarning, $userId);
+
+                if (!$stmtUpdateCart->execute()) {
+                    throw new Exception("Failed to update cart: " . $stmtUpdateCart->error);
+                }
+
+                $this->conn->commit();
+
+                return [
+                    "status" => "success",
+                    "message" => "Checkout completed successfully.",
+                    "sale_id" => $saleId
+                ];
+
+            } catch (Exception $e) {
+                if ($this->conn->in_transaction) {
+                    $this->conn->rollback();
+                }
+
+                return [
+                    "status" => "error",
+                    "message" => $e->getMessage()
+                ];
+            }
+        }
+
 
     }
