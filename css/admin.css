@@ -765,109 +765,142 @@ body {
 
 /* Change Profile Modal */
 .modal {
-    display: none;
     position: fixed;
-    z-index: 2000;
-    left: 0;
     top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 1000;
+    display: none;
     align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .modal-content {
     background: var(--white);
-    padding: 25px;
-    border-radius: 12px;
-    width: 400px;
-    max-width: 95%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 30px 25px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     position: relative;
-    animation: fadeIn 0.3s ease-in-out;
+    animation: slideDown 0.3s ease-out;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.input-row {
+    display: flex;
+    gap: 15px;
+}
+
+.input-row .input-group {
+    flex: 1;
+}
+
+.modal.show {
+    display: flex;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 
-.modal-content::-webkit-scrollbar {
-    width: 8px;
+.close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--darkGray);
+    transition: color 0.2s ease;
 }
 
-.modal-content::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
+.close:hover {
+    color: var(--smokey);
 }
-
-.modal-content::-webkit-scrollbar-thumb {
-    background: var(--smokey);
-    border-radius: 10px;
-}
-
-.modal-content::-webkit-scrollbar-thumb:hover {
-    background: #0d2345;
-}
-
 
 .modal-content h2 {
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.close-btn {
-    position: absolute;
-    top: 12px;
-    right: 15px;
+    margin-bottom: 20px;
     font-size: 22px;
-    cursor: pointer;
+    color: var(--darkGray);
 }
 
-.profile-pic-wrapper {
-    text-align: center;
-    margin-bottom: 15px;
-}
-
-.profile-pic-wrapper img {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-bottom: 8px;
-}
-
-.profile-pic-wrapper input {
-    display: block;
-    margin: auto;
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 .modal-content label {
-    display: block;
-    margin: 8px 0 4px;
     font-weight: 500;
+    font-size: 14px;
+    color: var(--darkGray);
 }
 
 .modal-content input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid var(--silver);
+    padding: 10px 12px;
+    border: 1px solid var(--ghostWhite);
     border-radius: 6px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.modal-content input,
+.modal-content select {
+    padding: 10px 12px;
+    border: 1px solid var(--ghostWhite);
+    border-radius: 6px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    border-color: var(--smokey);
+    box-shadow: 0 0 5px rgba(16, 44, 87, 0.3);
+}
+
+.modal-content input:focus {
+    border-color: var(--smokey);
+    box-shadow: 0 0 5px rgba(16, 44, 87, 0.3);
 }
 
 .save-btn {
-    margin-top: 15px;
-    width: 100%;
-    padding: 10px;
+    align-self: flex-end;
     background: var(--teal);
     color: var(--white);
+    padding: 10px 20px;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
+    font-size: 15px;
     cursor: pointer;
-    font-weight: bold;
+    transition: background 0.3s ease;
 }
 
 .save-btn:hover {
-    background: var(--teal);
+    background: var(--white);
+    color: var(--smokey);
+    box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+        inset -6px -6px 12px rgba(255, 255, 255, 0.7);
 }
 
 @keyframes fadeIn {

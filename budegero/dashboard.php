@@ -1,38 +1,46 @@
 <?php
 include '../config.php';
 
-// ==========================
-// DASHBOARD STATISTICS
-// ==========================
+// Total Products
+$total_products = $conn->query("SELECT COUNT(*) AS total FROM product")->fetch_assoc()['total'] ?? 0;
 
-//Total Products (count all products)
-$total_products = $conn->query("SELECT COUNT(*) AS total FROM product")->fetch_assoc()['total'];
+// Inventory Value (SUM of cost_price * remaining_qty)
+$inventory_value = $conn->query("
+    SELECT SUM(ps.cost_price * ps.remaining_qty) AS total_value
+    FROM product_stocks ps
+")->fetch_assoc()['total_value'] ?? 0;
 
-//Inventory Value (sum of product price * quantity)
-$inventory_value = $conn->query("SELECT SUM(price * quantity) AS total_value FROM product")->fetch_assoc()['total_value'];
-$inventory_value = $inventory_value ?? 0; // Avoid null
+// Pending Purchases (where status != 'pulled' or remaining_qty < quantity)
+$pending_purchases = $conn->query("
+    SELECT COUNT(*) AS pending
+    FROM product_stocks
+    WHERE status IS NULL OR status NOT IN ('pulled', 'out')
+")->fetch_assoc()['pending'] ?? 0;
 
-//Pending Purchases (from supplier_purchases)
-$pending_purchases = $conn->query("SELECT COUNT(*) AS pending FROM stock WHERE status='pending'")->fetch_assoc()['pending'];
+// Completed Purchases (where status = 'pulled')
+$completed_purchases = $conn->query("
+    SELECT COUNT(*) AS completed
+    FROM product_stocks
+    WHERE status = 'pulled'
+")->fetch_assoc()['completed'] ?? 0;
 
-//Completed Purchases (from supplier_purchases)
-$completed_purchases = $conn->query("SELECT COUNT(*) AS completed FROM stock WHERE status='completed'")->fetch_assoc()['completed'];
 
-// ==========================
-// STOCK LEVEL CHART
-// ==========================
+// stock level
 $stock_labels = [];
 $stock_data = [];
 
-$stock_query = $conn->query("SELECT product_name, quantity FROM product ORDER BY product_name ASC");
+$stock_query = $conn->query("
+    SELECT p.product_name, p.total_quantity
+    FROM product p
+    ORDER BY p.product_name ASC
+");
 while ($row = $stock_query->fetch_assoc()) {
     $stock_labels[] = $row['product_name'];
-    $stock_data[] = (int)$row['quantity'];
+    $stock_data[] = (int)$row['total_quantity'];
 }
 
-// ==========================
-// PURCHASE OVERVIEW CHART
-// ==========================
+
+// purchase overview
 $months = [];
 $pending_data = [];
 $completed_data = [];
@@ -44,10 +52,10 @@ for ($m = 1; $m <= 12; $m++) {
     $completed_data[$monthName] = 0;
 }
 
-// Fetch purchase data per month and status
+// Count purchases (from product_stocks table)
 $purchase_query = $conn->query("
     SELECT DATE_FORMAT(created_at, '%b') AS month, status, COUNT(*) AS total
-    FROM stock
+    FROM product_stocks
     WHERE YEAR(created_at) = YEAR(CURDATE())
     GROUP BY MONTH(created_at), status
     ORDER BY MONTH(created_at)
@@ -55,40 +63,45 @@ $purchase_query = $conn->query("
 
 while ($row = $purchase_query->fetch_assoc()) {
     $month = $row['month'];
-    $status = strtolower($row['status']);
-
-    if ($status == 'pending') {
-        $pending_data[$month] = (int)$row['total'];
-    } elseif ($status == 'completed') {
+    $status = strtolower($row['status'] ?? '');
+    if ($status === 'pulled') {
         $completed_data[$month] = (int)$row['total'];
+    } else {
+        $pending_data[$month] = (int)$row['total'];
     }
 }
 ?>
+
+<link rel="stylesheet" href="../css/budegero.css">
+<link rel="icon" href="images/logo-teal.png" type="images/png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <h1 class="page-title">Bodegero Dashboard</h1>
 
 <section class="content">
     <div class="cards">
         <div class="card">
-            <h3>Total Products</h3>
+            <h3><i class="fa-solid fa-boxes-stacked"></i> Total Products</h3>
             <p><?= number_format($total_products) ?></p>
         </div>
 
         <div class="card">
-            <h3>Inventory Value</h3>
+            <h3><i class="fa-solid fa-peso-sign"></i> Inventory Value</h3>
             <p>₱<?= number_format($inventory_value, 2) ?></p>
         </div>
 
         <div class="card">
-            <h3>Pending Purchases</h3>
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Pending Purchases</h3>
             <p><?= number_format($pending_purchases) ?></p>
         </div>
 
         <div class="card">
-            <h3>Completed Purchases</h3>
+            <h3><i class="fa-solid fa-check-circle"></i> Completed Purchases</h3>
             <p><?= number_format($completed_purchases) ?></p>
         </div>
     </div>
+
+
 
     <div class="charts">
         <div class="chart">
@@ -114,20 +127,17 @@ while ($row = $purchase_query->fetch_assoc()) {
                 </thead>
                 <tbody>
                     <?php
-                    // ==========================
-                    // DYNAMIC RECENT ACTIVITY
-                    // ==========================
-                   $activity_query = $conn->query("
-                    SELECT created_at, CONCAT('Added new product: ', product_name) AS activity, 'Success' AS status
-                    FROM product
-                    UNION ALL
-                    SELECT created_at, CONCAT('Purchase order #', po_num) AS activity, status
-                    FROM stock
-                    ORDER BY created_at DESC
-                    LIMIT 10
+                    $activity_query = $conn->query("
+                        SELECT created_at, CONCAT('Added new product: ', product_name) AS activity, 'Success' AS status
+                        FROM product
+                        UNION ALL
+                        SELECT created_at, CONCAT('Stock batch: ', batch_number) AS activity, status
+                        FROM product_stocks
+                        ORDER BY created_at DESC
+                        LIMIT 10
                     ");
 
-                    if ($activity_query->num_rows > 0) {
+                    if ($activity_query && $activity_query->num_rows > 0) {
                         while ($row = $activity_query->fetch_assoc()) {
                             echo '<tr>';
                             echo '<td>' . date('Y-m-d', strtotime($row['created_at'])) . '</td>';
@@ -145,7 +155,6 @@ while ($row = $purchase_query->fetch_assoc()) {
     </div>
 </section>
 
-<!-- Chart.js Script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
@@ -155,9 +164,6 @@ while ($row = $purchase_query->fetch_assoc()) {
     const pendingData = <?= json_encode(array_values($pending_data)) ?>;
     const completedData = <?= json_encode(array_values($completed_data)) ?>;
 
-    // ======================
-    // STOCK LEVEL CHART
-    // ======================
     new Chart(document.getElementById('stockChart'), {
         type: 'bar',
         data: {
@@ -165,23 +171,23 @@ while ($row = $purchase_query->fetch_assoc()) {
             datasets: [{
                 label: 'Stock Quantity',
                 data: stockData,
-                backgroundColor: '#102C57'
+                backgroundColor: '#088395'
             }]
         },
         options: {
-            scales: { y: { beginAtZero: true } }
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
         }
     });
 
-    // ======================
-    // PURCHASE OVERVIEW CHART
-    // ======================
     new Chart(document.getElementById('purchaseChart'), {
         type: 'line',
         data: {
             labels: months,
-            datasets: [
-                {
+            datasets: [{
                     label: 'Pending Purchases',
                     data: pendingData,
                     borderColor: '#e6b800',
@@ -192,7 +198,7 @@ while ($row = $purchase_query->fetch_assoc()) {
                 {
                     label: 'Completed Purchases',
                     data: completedData,
-                    borderColor: '#102C57',
+                    borderColor: '#088395',
                     backgroundColor: 'rgba(16, 44, 87, 0.1)',
                     fill: true,
                     tension: 0.3
@@ -200,7 +206,11 @@ while ($row = $purchase_query->fetch_assoc()) {
             ]
         },
         options: {
-            scales: { y: { beginAtZero: true } }
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
         }
     });
 </script>

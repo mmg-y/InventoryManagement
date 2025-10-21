@@ -8,43 +8,6 @@ $signupMessage = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // if ($action === 'signup') {
-    //     $first_name = trim($_POST['first_name'] ?? '');
-    //     $last_name  = trim($_POST['last_name'] ?? '');
-    //     $contact    = trim($_POST['contact'] ?? '');
-    //     $email      = trim($_POST['email'] ?? '');
-    //     $username   = trim($_POST['username'] ?? '');
-    //     $password   = $_POST['password'] ?? '';
-    //     $type       = trim($_POST['type'] ?? '');
-
-    //     if ($first_name && $last_name && $contact && $email && $username && $password && $type) {
-    //         $stmt = $conn->prepare("SELECT id FROM user WHERE username=? OR email=? LIMIT 1");
-    //         $stmt->bind_param("ss", $username, $email);
-    //         $stmt->execute();
-    //         $stmt->store_result();
-
-    //         if ($stmt->num_rows > 0) {
-    //             $signupMessage = "⚠ Username or Email already exists!";
-    //         } else {
-    //             $password_hashed = password_hash($password, PASSWORD_BCRYPT);
-    //             $created_at = date("Y-m-d H:i:s");
-
-    //             $stmt = $conn->prepare("INSERT INTO user 
-    //                 (first_name, last_name, contact, email, username, password, type, created_at) 
-    //                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    //             $stmt->bind_param("ssssssss", $first_name, $last_name, $contact, $email, $username, $password_hashed, $type, $created_at);
-
-    //             if ($stmt->execute()) {
-    //                 $signupMessage = "✅ Signup successful! Please log in.";
-    //             } else {
-    //                 $signupMessage = "❌ Error: " . $conn->error;
-    //             }
-    //         }
-    //         $stmt->close();
-    //     } else {
-    //         $signupMessage = "❌ Please fill in all signup fields!";
-    //     }
-    // }
     if ($action === 'login') {
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
@@ -56,11 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $stmt->get_result();
 
             if ($row = $result->fetch_assoc()) {
-                // Block archived accounts
-                if ($row['archived'] == 1) {
-                    $loginMessage = "⚠ Your account has been archived. Please contact the administrator.";
-                } elseif (password_verify($password, $row['password'])) {
-                    // Set session for active accounts only
+                if (password_verify($password, $row['password'])) {
+                    // Set session for all active users (no archive restriction)
                     $_SESSION['id']          = $row['id'];
                     $_SESSION['username']    = $row['username'];
                     $_SESSION['first_name']  = $row['first_name'];
@@ -92,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -99,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IMS - Login Page</title>
-    <link rel="icon" href="" type="images/png">
+    <link rel="icon" href="images/logo-teal.png" type="images/png">
     <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 

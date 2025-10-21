@@ -4,12 +4,16 @@
     --black: #000;
     --smokey: #100c08;
     --white: #fff;
-    --blue: #102C57;
-    --whiteOne: #f6f7fb;
-    --whiteTwo: #eee;
-    --whiteThree: #ccc;
-    --darkGray: #333;
+    --ghostWhite: #e5e7eb;
+    --platinum: #e0f2fe;
+    --silver: #f3f4f6;
+    --gray: #6b7280;
     --lightGray: #555;
+    --darkGray: #333;
+    --cyan: #EBF4F6;
+    --aqua: #37B7C3;
+    --teal: #088395;
+    --navy: #071952;
 }
 
 * {
@@ -91,15 +95,15 @@ th a:hover {
 }
 
 .search-form input:focus {
-    border: 1px solid var(--whiteThree);
+    border: 1px solid var(--ghostWhite);
     box-shadow: 0 0 5px rgba(16, 44, 87, 0.3);
 }
 
 .search-form button {
-    background: var(--smokey);
+    background: var(--teal);
     border: none;
     color: var(--white);
-    padding: 8px 12px;
+    padding: 12px 12px;
     border-radius: 50%;
     cursor: pointer;
     transition: background 0.3s ease;
@@ -121,7 +125,7 @@ th a:hover {
 }
 
 .edit-btn {
-    background: var(--blue);
+    background: var(--teal);
     color: var(--white);
 }
 
@@ -137,7 +141,7 @@ th a:hover {
 }
 
 .add-btn {
-    background: #10b981;
+    background: var(--teal);
     color: var(--white);
     padding: 10px 15px;
     border-radius: 5px;
@@ -217,7 +221,7 @@ th a:hover {
 .modal-content form {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 18px;
 }
 
 .modal-content label {
@@ -226,12 +230,46 @@ th a:hover {
     color: var(--darkGray);
 }
 
-.modal-content input {
+.modal-content input,
+.modal-content select {
     padding: 10px 12px;
-    border: 1px solid var(--whiteThree);
+    border: 1px solid var(--ghostWhite);
     border-radius: 6px;
     outline: none;
     transition: all 0.3s ease;
+    background-color: var(--white);
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    border-color: var(--smokey);
+    box-shadow: 0 0 5px rgba(16, 44, 87, 0.3);
+}
+
+.modal-content input {
+    padding: 10px 12px;
+    border: 1px solid var(--silver);
+    border-radius: 6px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.input-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.input-row .input-group {
+    flex: 1;
+    min-width: 48%;
 }
 
 .modal-content input:focus {
@@ -243,7 +281,7 @@ th a:hover {
 .modal-content select {
     width: 100%;
     padding: 10px 14px;
-    border: 1px solid var(--whiteThree);
+    border: 1px solid var(--silver);
     border-radius: 8px;
     background-color: var(--white);
     font-size: 14px;
@@ -261,20 +299,21 @@ th a:hover {
 }
 
 .modal-content select:focus {
-    border: 1px solid var(--smokey);
+    border: 1px solid var(--silver);
     box-shadow: 0 0 5px rgba(16, 44, 87, 0.3);
 }
 
 /* ===== Save Button ===== */
 .save-btn {
-    background: var(--smokey);
+    align-self: flex-end;
+    background: var(--teal);
     color: var(--white);
-    padding: 10px 15px;
+    padding: 10px 20px;
     border: none;
     border-radius: 6px;
     font-size: 15px;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .save-btn:hover {
@@ -350,8 +389,8 @@ th a:hover {
 }
 
 .pagination a.active {
-    background: var(--smokey);
+    background: var(--teal);
     color: var(--white);
-    border-color: var(--smokey);
+    /* border-color: var(--smokey); */
     pointer-events: none;
 }

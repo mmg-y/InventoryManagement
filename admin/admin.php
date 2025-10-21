@@ -91,6 +91,7 @@ if (!empty($_GET['page'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IMS - Admin Page</title>
     <link rel="stylesheet" href="../css/admin.css">
+    <link rel="icon" href="../images/logo-teal.png" type="images/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -173,7 +174,7 @@ if (!empty($_GET['page'])) {
                     </div>
                 </div>
                 <ul class="menu">
-                    <li><a href="#profile"><i class="fa-solid fa-user"></i> Manage Profile</a></li>
+                    <li><a href="#profile" id="manageProfile"><i class="fa-solid fa-user"></i> Manage Profile</a></li>
                     <li><a href="../logout.php"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
                 </ul>
             </div>
@@ -213,6 +214,56 @@ if (!empty($_GET['page'])) {
                 include __DIR__ . '/dashboard.php';
             }
             ?>
+        </div>
+
+        <div id="profileModal" class="modal" aria-hidden="true">
+            <div class="modal-content">
+                <span class="close-btn" id="closeProfile">&times;</span>
+                <h2>Edit Profile</h2>
+
+                <?php if (isset($_SESSION['success'])): ?>
+                    <div class="alert success"><?= $_SESSION['success'];
+                                                unset($_SESSION['success']); ?></div>
+                <?php endif; ?>
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert error"><?= $_SESSION['error'];
+                                                unset($_SESSION['error']); ?></div>
+                <?php endif; ?>
+
+                <form action="update_profile_budegero.php" method="POST" enctype="multipart/form-data">
+                    <div class="profile-pic-wrapper">
+                        <?php
+                        $modal_pic = '../uploads/default.png';
+                        if (!empty($_SESSION['profile_pic'])) $modal_pic = '../' . ltrim($_SESSION['profile_pic'], '/');
+                        ?>
+                        <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Profile" id="profilePreview">
+                        <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
+                    </div>
+
+                    <label>First Name</label>
+                    <input type="text" name="first_name" value="<?= htmlspecialchars($_SESSION['first_name'] ?? ''); ?>" required>
+
+                    <label>Last Name</label>
+                    <input type="text" name="last_name" value="<?= htmlspecialchars($_SESSION['last_name'] ?? ''); ?>" required>
+
+                    <label>Contact</label>
+                    <input type="text" name="contact" value="<?= htmlspecialchars($_SESSION['contact'] ?? ''); ?>" required>
+
+                    <label>Email</label>
+                    <input type="email" name="email" value="<?= htmlspecialchars($_SESSION['email'] ?? ''); ?>" required>
+
+                    <label>Username</label>
+                    <input type="text" name="username" value="<?= htmlspecialchars($_SESSION['username'] ?? ''); ?>" required>
+
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="Enter new password">
+
+                    <label>Confirm Password</label>
+                    <input type="password" name="confirm_password" placeholder="Confirm new password">
+
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </form>
+            </div>
         </div>
     </main>
 
@@ -266,6 +317,36 @@ if (!empty($_GET['page'])) {
             </form>
         </div>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const manageProfile = document.getElementById("manageProfile");
+            const profileModal = document.getElementById("profileModal");
+            const closeProfile = document.getElementById("closeProfile");
+
+            if (manageProfile) {
+                manageProfile.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    profileModal.style.display = "flex";
+                    profileModal.setAttribute("aria-hidden", "false");
+                });
+            }
+
+            if (closeProfile) {
+                closeProfile.addEventListener("click", () => {
+                    profileModal.style.display = "none";
+                    profileModal.setAttribute("aria-hidden", "true");
+                });
+            }
+
+            window.addEventListener("click", (e) => {
+                if (e.target === profileModal) {
+                    profileModal.style.display = "none";
+                    profileModal.setAttribute("aria-hidden", "true");
+                }
+            });
+        });
+    </script>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {

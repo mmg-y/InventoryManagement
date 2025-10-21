@@ -1,19 +1,33 @@
 <?php
 include '../config.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_purchase'])) {
-    $po_num = $_POST['po_num'];
-    $supplier_id = $_POST['supplier_id'];
-    $product_name = $_POST['product_name'];
-    $qty = $_POST['qty'];
-    $status = $_POST['status'];
+// ✅ Function to auto-generate batch numbers
+function generateBatchNumber()
+{
+    return 'BATCH-' . date('Ymd-His-') . rand(100, 999);
+}
 
-    if (!empty($po_num) && !empty($supplier_id) && !empty($product_name) && $qty > 0) {
-        $stmt = $conn->prepare("INSERT INTO stock (po_num, bodegero, product_name, qty, status, created_at, updated_at) 
-                                VALUES (?, ?, ?, ?, ?, NOW(), NOW())");
-        $stmt->bind_param("sisds", $po_num, $supplier_id, $product_name, $qty, $status);
+/* ------------------------------
+   ADD NEW PURCHASE
+--------------------------------*/
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_purchase'])) {
+    $supplier_id = $_POST['supplier_id'];
+    $product_id = $_POST['product_id'];
+    $qty = $_POST['qty'];
+    $cost_price = $_POST['cost_price'];
+    $status = $_POST['status'];
+    $remarks = $_POST['remarks'] ?? null;
+
+    if (!empty($supplier_id) && !empty($product_id) && $qty > 0 && $cost_price > 0) {
+        $batch_number = generateBatchNumber();
+
+        $stmt = $conn->prepare("INSERT INTO product_stocks 
+            (product_id, batch_number, quantity, remaining_qty, cost_price, remarks, created_at, supplier_id, updated_at, status) 
+            VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, NOW(), ?)");
+        $stmt->bind_param("ssddssis", $product_id, $batch_number, $qty, $qty, $cost_price, $remarks, $supplier_id, $status);
         $stmt->execute();
         $stmt->close();
+
         header("Location: budegero.php?page=supplier_purchases&success=Purchase added successfully");
         exit;
     } else {
@@ -22,17 +36,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_purchase'])) {
     }
 }
 
+/* ------------------------------
+   UPDATE PURCHASE
+--------------------------------*/
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_purchase'])) {
-    $id = $_POST['stock_id'];
-    $po_num = $_POST['po_num'];
-    $product_name = $_POST['product_name'];
+    $id = $_POST['product_stock_id'];
+    $product_id = $_POST['product_id'];
     $qty = $_POST['qty'];
+    $cost_price = $_POST['cost_price'];
     $status = $_POST['status'];
+    $remarks = $_POST['remarks'];
 
-    $stmt = $conn->prepare("UPDATE stock 
-                            SET po_num=?, product_name=?, qty=?, status=?, updated_at=NOW() 
-                            WHERE stock_id=?");
-    $stmt->bind_param("ssisi", $po_num, $product_name, $qty, $status, $id);
+    $stmt = $conn->prepare("UPDATE product_stocks 
+                            SET product_id=?, quantity=?, remaining_qty=?, cost_price=?, status=?, remarks=?, updated_at=NOW() 
+                            WHERE product_stock_id=?");
+    $stmt->bind_param("sdddssi", $product_id, $qty, $qty, $cost_price, $status, $remarks, $id);
     $stmt->execute();
     $stmt->close();
 
@@ -40,38 +58,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_purchase'])) {
     exit;
 }
 
+/* ------------------------------
+   DELETE PURCHASE
+--------------------------------*/
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
-    $conn->query("DELETE FROM stock WHERE stock_id='$id'");
+    $conn->query("DELETE FROM product_stocks WHERE product_stock_id='$id'");
     header("Location: budegero.php?page=supplier_purchases&success=Purchase deleted successfully");
     exit;
 }
 
+/* ------------------------------
+   PAGINATION, SEARCH & SORT
+--------------------------------*/
 $limit = 10;
 $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
 if ($page < 1) $page = 1;
 $start = ($page - 1) * $limit;
 
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$where = $search ? "WHERE s.po_num LIKE '%$search%' OR s.product_name LIKE '%$search%' OR sp.supplier_type LIKE '%$search%'" : '';
+$search = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
+$where = $search ? "WHERE p.product_name LIKE '%$search%' OR s.name LIKE '%$search%' OR ps.batch_number LIKE '%$search%'" : '';
 
-$valid_columns = ['stock_id', 'po_num', 'supplier_type', 'product_name', 'qty', 'status', 'created_at'];
-$sort = isset($_GET['sort']) && in_array($_GET['sort'], $valid_columns) ? $_GET['sort'] : 'stock_id';
+$valid_columns = ['product_stock_id', 'batch_number', 'name', 'product_name', 'quantity', 'status', 'created_at'];
+$sort = isset($_GET['sort']) && in_array($_GET['sort'], $valid_columns) ? $_GET['sort'] : 'product_stock_id';
 $order = isset($_GET['order']) && strtolower($_GET['order']) === 'asc' ? 'ASC' : 'DESC';
 $toggle_order = $order === 'ASC' ? 'DESC' : 'ASC';
 
-$countSql = "SELECT COUNT(*) as count 
-             FROM stock s 
-             LEFT JOIN supplier sp ON s.bodegero = sp.supplier_id $where";
+/* ------------------------------
+   QUERY DATA
+--------------------------------*/
+$countSql = "SELECT COUNT(*) AS count 
+             FROM product_stocks ps 
+             LEFT JOIN supplier s ON ps.supplier_id = s.supplier_id
+             LEFT JOIN product p ON ps.product_id = p.product_id 
+             $where";
 $total = $conn->query($countSql)->fetch_assoc()['count'];
 $pages = ceil($total / $limit);
 
 $result = $conn->query("
-    SELECT s.*, sp.name AS supplier_name, sp.supplier_type, sp.contact, sp.email
-    FROM stock s 
-    LEFT JOIN supplier sp ON s.bodegero = sp.supplier_id 
-    $where 
-    ORDER BY $sort $order 
+    SELECT ps.*, s.name AS supplier_name, p.product_name
+    FROM product_stocks ps
+    LEFT JOIN supplier s ON ps.supplier_id = s.supplier_id
+    LEFT JOIN product p ON ps.product_id = p.product_id
+    $where
+    ORDER BY $sort $order
     LIMIT $start, $limit
 ");
 ?>
@@ -82,20 +112,19 @@ $result = $conn->query("
     <h1 class="page-title">Supplier Purchases</h1>
 
     <?php if (isset($_GET['success'])): ?>
-    <?php if (stripos($_GET['success'], 'deleted') !== false): ?>
-        <div class="alert danger"><?= htmlspecialchars($_GET['success']); ?></div>
-    <?php else: ?>
-        <div class="alert success"><?= htmlspecialchars($_GET['success']); ?></div>
-    <?php endif; ?>
+        <?php if (stripos($_GET['success'], 'deleted') !== false): ?>
+            <div class="alert danger"><?= htmlspecialchars($_GET['success']); ?></div>
+        <?php else: ?>
+            <div class="alert success"><?= htmlspecialchars($_GET['success']); ?></div>
+        <?php endif; ?>
     <?php elseif (isset($_GET['error'])): ?>
-    <div class="alert error"><?= htmlspecialchars($_GET['error']); ?></div>
+        <div class="alert error"><?= htmlspecialchars($_GET['error']); ?></div>
     <?php endif; ?>
-
 
     <div class="actions-bar">
         <form method="GET" class="search-form">
             <input type="hidden" name="page" value="supplier_purchases">
-            <input type="text" name="search" placeholder="Search PO, Supplier, or Product..." value="<?= htmlspecialchars($search) ?>">
+            <input type="text" name="search" placeholder="Search Batch, Supplier, or Product..." value="<?= htmlspecialchars($search) ?>">
             <button type="submit"><i class="fa fa-search"></i></button>
         </form>
         <button class="add-btn"><i class="fa fa-plus"></i> Add Purchase</button>
@@ -107,16 +136,17 @@ $result = $conn->query("
                 <tr>
                     <?php
                     $columns = [
-                        'stock_id' => 'ID',
-                        'po_num' => 'PO Number',
-                        'supplier_type' => 'Supplier',
+                        'product_stock_id' => 'ID',
+                        'batch_number' => 'Batch Number',
+                        'supplier_name' => 'Supplier',
                         'product_name' => 'Product',
-                        'qty' => 'Quantity',
+                        'quantity' => 'Quantity',
+                        'cost_price' => 'Cost Price',
                         'status' => 'Status',
                     ];
                     foreach ($columns as $col => $label) {
                         $indicator = ($sort === $col) ? ($order === 'ASC' ? '▲' : '▼') : '';
-                        echo "<th><a href='admin.php?page=supplier_purchases&sort=$col&order=$toggle_order&search=" . urlencode($search) . "'>$label <span class='sort-indicator'>$indicator</span></a></th>";
+                        echo "<th><a href='budegero.php?page=supplier_purchases&sort=$col&order=$toggle_order&search=" . urlencode($search) . "'>$label <span class='sort-indicator'>$indicator</span></a></th>";
                     }
                     ?>
                     <th>Actions</th>
@@ -126,23 +156,24 @@ $result = $conn->query("
                 <?php if ($result->num_rows > 0): ?>
                     <?php while ($row = $result->fetch_assoc()): ?>
                         <tr>
-                            <td><?= $row['stock_id'] ?></td>
-                            <td><?= $row['po_num'] ?></td>
-                            <td><?= $row['supplier_name'] ?> (<?= $row['supplier_type'] ?>)</td>
-                            <td><?= $row['product_name'] ?></td>
-                            <td><?= $row['qty'] ?></td>
-                            <td><?= $row['status'] ?></td>
+                            <td><?= $row['product_stock_id'] ?></td>
+                            <td><?= htmlspecialchars($row['batch_number']) ?></td>
+                            <td><?= htmlspecialchars($row['supplier_name']) ?></td>
+                            <td><?= htmlspecialchars($row['product_name']) ?></td>
+                            <td><?= $row['quantity'] ?></td>
+                            <td>₱<?= number_format($row['cost_price'], 2) ?></td>
+                            <td><?= htmlspecialchars($row['status']) ?></td>
                             <td class="actions">
                                 <button class="edit-btn"
-                                    data-id="<?= $row['stock_id'] ?>"
-                                    data-po="<?= $row['po_num'] ?>"
-                                    data-supplier="<?= $row['supplier_type'] ?>"
-                                    data-product="<?= $row['product_name'] ?>"
-                                    data-qty="<?= $row['qty'] ?>"
-                                    data-status="<?= $row['status'] ?>">
+                                    data-id="<?= $row['product_stock_id'] ?>"
+                                    data-product="<?= $row['product_id'] ?>"
+                                    data-qty="<?= $row['quantity'] ?>"
+                                    data-cost="<?= $row['cost_price'] ?>"
+                                    data-status="<?= $row['status'] ?>"
+                                    data-remarks="<?= htmlspecialchars($row['remarks'] ?? '') ?>">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
-                                <a href="budegero.php?page=supplier_purchases&delete=<?= $row['stock_id'] ?>"
+                                <a href="budegero.php?page=supplier_purchases&delete=<?= $row['product_stock_id'] ?>"
                                     class="delete-btn"
                                     onclick="return confirm('Delete this purchase?')">
                                     <i class="fa fa-trash"></i>
@@ -161,68 +192,113 @@ $result = $conn->query("
 
     <div class="pagination">
         <?php for ($i = 1; $i <= $pages; $i++): ?>
-            <a href="admin.php?page=supplier_purchases&p=<?= $i ?>&sort=<?= $sort ?>&order=<?= $order ?>&search=<?= urlencode($search) ?>" class="<?= $i == $page ? 'active' : '' ?>">
-                <?= $i ?>
-            </a>
+            <a href="budegero.php?page=supplier_purchases&p=<?= $i ?>&sort=<?= $sort ?>&order=<?= $order ?>&search=<?= urlencode($search) ?>" class="<?= $i == $page ? 'active' : '' ?>"><?= $i ?></a>
         <?php endfor; ?>
     </div>
 </div>
 
+<!-- Add Modal -->
 <div id="addModal" class="modal">
     <div class="modal-content">
         <span id="closeAdd" class="close">&times;</span>
         <h2>Add Purchase</h2>
+
         <form method="POST">
             <input type="hidden" name="add_purchase" value="1">
-            <label>PO Number</label>
-            <input type="text" name="po_num" required>
-            <label>Supplier</label>
-            <select name="supplier_id" required>
-                <option value="">Select Supplier</option>
-                <?php
-                $suppliers = $conn->query("SELECT * FROM supplier ORDER BY supplier_type ASC");
-                while ($sup = $suppliers->fetch_assoc()) {
-                    echo "<option value='{$sup['supplier_id']}'>{$sup['supplier_name']} ({$sup['supplier_type']})</option>";
-                }
-                ?>
-            </select>
-            <label>Product</label>
-            <input type="text" name="product_name" required>
-            <label>Quantity</label>
-            <input type="number" name="qty" required>
-            <label>Status</label>
-            <select name="status">
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-                <option value="failed">Failed</option>
-            </select>
+
+            <div class="input-group">
+                <label>Supplier</label>
+                <select name="supplier_id" required>
+                    <option value="">Select Supplier</option>
+                    <?php
+                    $suppliers = $conn->query("SELECT * FROM supplier ORDER BY name ASC");
+                    while ($sup = $suppliers->fetch_assoc()) {
+                        echo "<option value='{$sup['supplier_id']}'>{$sup['name']} ({$sup['supplier_type']})</option>";
+                    }
+                    ?>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Product</label>
+                <select name="product_id" required>
+                    <option value="">Select Product</option>
+                    <?php
+                    $products = $conn->query("SELECT * FROM product ORDER BY product_name ASC");
+                    while ($prod = $products->fetch_assoc()) {
+                        echo "<option value='{$prod['product_id']}'>{$prod['product_name']}</option>";
+                    }
+                    ?>
+                </select>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label>Quantity</label>
+                    <input type="number" name="qty" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Cost Price (₱)</label>
+                    <input type="number" step="0.01" name="cost_price" required>
+                </div>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label>Status</label>
+                    <select name="status" required>
+                        <option value="pulled">Pulled</option>
+                        <option value="out">Out</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Remarks</label>
+                    <input type="text" name="remarks" placeholder="Optional">
+                </div>
+            </div>
+
             <button type="submit" class="save-btn">Add Purchase</button>
         </form>
     </div>
 </div>
 
+
+<!-- Edit Modal -->
 <div id="editModal" class="modal">
     <div class="modal-content">
         <span id="closeEdit" class="close">&times;</span>
         <h2>Edit Purchase</h2>
         <form method="POST">
             <input type="hidden" name="update_purchase" value="1">
-            <input type="hidden" name="stock_id" id="edit_id">
+            <input type="hidden" name="product_stock_id" id="edit_id">
 
-            <label>PO Number</label>
-            <input type="text" name="po_num" id="edit_po" required>
-            <label>Supplier</label>
-            <input type="text" id="edit_supplier" readonly>
             <label>Product</label>
-            <input type="text" name="product_name" id="edit_product" required>
+            <select name="product_id" id="edit_product" required>
+                <?php
+                $products = $conn->query("SELECT * FROM product ORDER BY product_name ASC");
+                while ($prod = $products->fetch_assoc()) {
+                    echo "<option value='{$prod['product_id']}'>{$prod['product_name']}</option>";
+                }
+                ?>
+            </select>
+
             <label>Quantity</label>
             <input type="number" name="qty" id="edit_qty" required>
+
+            <label>Cost Price (₱)</label>
+            <input type="number" step="0.01" name="cost_price" id="edit_cost" required>
+
             <label>Status</label>
-            <select name="status" id="edit_status">
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-                <option value="failed">Failed</option>
+            <select name="status" id="edit_status" required>
+                <option value="pulled">Pulled</option>
+                <option value="out">Out</option>
             </select>
+
+            <label>Remarks</label>
+            <input type="text" name="remarks" id="edit_remarks">
+
             <button type="submit" class="save-btn">Save Changes</button>
         </form>
     </div>
@@ -242,11 +318,11 @@ $result = $conn->query("
     document.querySelectorAll(".edit-btn").forEach(btn => {
         btn.addEventListener("click", () => {
             document.getElementById("edit_id").value = btn.dataset.id;
-            document.getElementById("edit_po").value = btn.dataset.po;
-            document.getElementById("edit_supplier").value = btn.dataset.supplier;
             document.getElementById("edit_product").value = btn.dataset.product;
             document.getElementById("edit_qty").value = btn.dataset.qty;
+            document.getElementById("edit_cost").value = btn.dataset.cost;
             document.getElementById("edit_status").value = btn.dataset.status;
+            document.getElementById("edit_remarks").value = btn.dataset.remarks;
             editModal.style.display = "flex";
         });
     });
