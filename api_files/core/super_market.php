@@ -142,9 +142,11 @@
                         p.product_name AS itemName,
                         s.name AS supplierName,
                         ps.remaining_qty AS quantity,
+                        ps.quantity AS totalUnits,
                         ps.status AS status,
                         ps.updated_at AS dateAdded,
                         ps.cost_price AS pricePerUnit,
+                        (ps.cost_price * ps.quantity) AS totalCost,
                         (ps.remaining_qty * ps.cost_price) AS totalValue
                     FROM product_stocks ps
                     JOIN product p ON ps.product_id = p.product_id
@@ -527,6 +529,7 @@
                         p.product_name,
                         p.category,
                         p.retail_id,
+                        p.product_picture,
                         p.total_quantity,
                         p.reserved_qty,
                         p.threshold_id,
@@ -539,7 +542,7 @@
                         ON c.cart_id = ci.cart_id
                     LEFT JOIN product AS p 
                         ON ci.product_id = p.product_id
-                    WHERE c.seller = ?;
+                    WHERE c.seller = ? AND c.status = 'pending';
 
                 ";
                 $stmt2 = $this->conn->prepare($query2);
@@ -567,6 +570,7 @@
                         "productName" => $row["product_name"],
                         "category" => $row["category"],
                         "retailId" => $row["retail_id"],
+                        "productImage" => !empty($row["product_picture"]) ? $row["product_picture"] : null,
                         "totalQuantity" => $row["total_quantity"],
                         "reservedQty" => $row["reserved_qty"],
                         "thresholdId" => $row["threshold_id"],
@@ -644,7 +648,7 @@
                         ON c.cart_id = ci.cart_id
                     LEFT JOIN product AS p 
                         ON ci.product_id = p.product_id
-                    WHERE c.seller = ?;
+                    WHERE c.seller = ? AND c.status = 'pending';
                 ";
                 $stmt3 = $this->conn->prepare($query3);
                 $stmt3->bind_param('i', $userId);
@@ -707,6 +711,7 @@
                 $row = $result->fetch_assoc();
                 $productId = $row["product_id"];
                 $retailPercent = $row["percent"] ?? 0;
+                $product_image = $row["product_picture"];
 
                 //Get the latest or active batch for this product
                 $queryBatch = "
@@ -781,22 +786,23 @@
                     throw new Exception("Failed to update product stock: " . $stmtUpdate->error);
                 }
 
-                //update product_stocks remaining_qty
-                $queryUpdateStock = "
-                    UPDATE product_stocks
-                    SET remaining_qty = remaining_qty - 1,
-                        updated_at = NOW()
-                    WHERE product_stock_id = ?
-                ";
-                $stmtUpdateStock = $this->conn->prepare($queryUpdateStock);
-                $stmtUpdateStock->bind_param('i', $batchId);
-                $stmtUpdateStock->execute(); // don't need to throw unless critical
+                // //update product_stocks remaining_qty
+                // $queryUpdateStock = "
+                //     UPDATE product_stocks
+                //     SET remaining_qty = remaining_qty - 1,
+                //         updated_at = NOW()
+                //     WHERE product_stock_id = ?
+                // ";
+                // $stmtUpdateStock = $this->conn->prepare($queryUpdateStock);
+                // $stmtUpdateStock->bind_param('i', $batchId);
+                // $stmtUpdateStock->execute(); // don't need to throw unless critical
                 $addToCart = [];
                 //Return product info
                 $addToCart[] = [
                     "productId" => $productId,
                     "productCode" => $row["product_code"],
                     "productName" => $row["product_name"],
+                    "productImage" => !empty($product_image) ? $product_image : null,
                     "category" => $row["category"],
                     "retailId" => $row["retail_id"],
                     "costPrice" => $costPrice,
@@ -967,5 +973,400 @@
                 ];
             }
         }
+
+        public function checkoutCart($userId, $totalAmount, $totalEarning, $items) {
+            try {
+                if (empty($userId) || empty($items)) {
+                    throw new Exception("Missing required checkout data.");
+                }
+
+                $this->conn->begin_transaction();
+
+                //Insert new record in `sales`
+                $querySales = "
+                    INSERT INTO sales (total_amount, total_earning, sale_date, cashier_id, remarks)
+                    VALUES (?, ?, NOW(), ?, 'Checkout completed')
+                ";
+                $stmtSales = $this->conn->prepare($querySales);
+                $stmtSales->bind_param('ddi', $totalAmount, $totalEarning, $userId);
+
+                if (!$stmtSales->execute()) {
+                    throw new Exception("Failed to create sale: " . $stmtSales->error);
+                }
+
+                $saleId = $this->conn->insert_id;
+
+                //Insert each item into `sales_items` table
+                $queryItems = "
+                    INSERT INTO sales_items 
+                        (sale_id, product_id, batch_id, quantity, unit_price, cost_price, earning, remarks)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'Sold from POS')
+                ";
+                $stmtItem = $this->conn->prepare($queryItems);
+
+                foreach ($items as $item) {
+                    // support both array and object
+                    if (is_object($item)) {
+                        $productId  = (int)$item->product_id;
+                        $batchId    = (int)$item->batch_id;
+                        $quantity   = (int)$item->quantity;
+                        $unitPrice  = (float)$item->unit_price;
+                        $costPrice  = isset($item->cost_price) ? (float)$item->cost_price : 0;
+                        $earning    = isset($item->earning) ? (float)$item->earning : ($unitPrice - $costPrice);
+                    } else {
+                        $productId  = (int)$item['product_id'];
+                        $batchId    = (int)$item['batch_id'];
+                        $quantity   = (int)$item['quantity'];
+                        $unitPrice  = (float)$item['unit_price'];
+                        $costPrice  = isset($item['cost_price']) ? (float)$item['cost_price'] : 0;
+                        $earning    = isset($item['earning']) ? (float)$item['earning'] : ($unitPrice - $costPrice);
+                    }
+
+                    $stmtItem->bind_param('iiiiddd', $saleId, $productId, $batchId, $quantity, $unitPrice, $costPrice, $earning);
+
+                    if (!$stmtItem->execute()) {
+                        throw new Exception("Failed to insert sale item: " . $stmtItem->error);
+                    }
+
+                    //Update product totals
+                    $queryUpdateProduct = "
+                        UPDATE product
+                        SET reserved_qty = reserved_qty - ?, 
+                            updated_at = NOW()
+                        WHERE product_id = ?
+                    ";
+                    $stmtUpdateProduct = $this->conn->prepare($queryUpdateProduct);
+                    $stmtUpdateProduct->bind_param('ii', $quantity, $productId);
+                    $stmtUpdateProduct->execute();
+
+                    //Update batch remaining_qty
+                    $queryUpdateStock = "
+                        UPDATE product_stocks
+                        SET remaining_qty = remaining_qty - ?, updated_at = NOW()
+                        WHERE product_stock_id = ?
+                    ";
+                    $stmtUpdateStock = $this->conn->prepare($queryUpdateStock);
+                    $stmtUpdateStock->bind_param('ii', $quantity, $batchId);
+                    $stmtUpdateStock->execute();
+                }
+
+                //Mark users cart as completed
+                $queryUpdateCart = "
+                    UPDATE carts
+                    SET status = 'completed', total = ?, total_earning = ?, updated_at = NOW()
+                    WHERE seller = ? AND status = 'pending'
+                ";
+                $stmtUpdateCart = $this->conn->prepare($queryUpdateCart);
+                $stmtUpdateCart->bind_param('ddi', $totalAmount, $totalEarning, $userId);
+
+                if (!$stmtUpdateCart->execute()) {
+                    throw new Exception("Failed to update cart: " . $stmtUpdateCart->error);
+                }
+
+                $this->conn->commit();
+
+                return [
+                    "status" => "success",
+                    "message" => "Checkout completed successfully.",
+                    "sale_id" => $saleId
+                ];
+
+            } catch (Exception $e) {
+                if ($this->conn->in_transaction) {
+                    $this->conn->rollback();
+                }
+
+                return [
+                    "status" => "error",
+                    "message" => $e->getMessage()
+                ];
+            }
+        }
+
+        public function cashierDashboard($userId) {
+            $totalAmountToday = 0;
+            $totalEarningToday = 0;
+            $totalAmountWeek = 0;
+            $totalEarningWeek = 0;
+            $weekStart = '';
+            $weekEnd = '';
+            $totalAmountMonth = 0;
+            $totalEarningMonth = 0;
+            $monthStart = '';
+            $monthEnd = '';
+            $firstName = '';
+            $lastName = '';
+            $username = '';
+            $email = '';
+            $totalCount = 0;
+
+            $query = 'SELECT 
+                SUM(s.total_amount) AS "TotalAmount",
+                SUM(s.total_earning) AS "TotalEarning"
+                FROM user AS u
+                INNER JOIN sales AS s ON s.cashier_id = u.id
+                WHERE u.id = ?
+                AND DATE(s.sale_date) = CURDATE()
+                ';
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if($result->num_rows > 0){
+                $row = $result->fetch_assoc();
+                $totalAmountToday = $row["TotalAmount"] = null ?  $row["TotalAmount"]: 0;
+                $totalEarningToday = $row["TotalEarning"] = null ? $row["TotalEarning"] : 0;
+            }
+
+            $query2 = "SELECT count(*) AS TotalCount
+                        FROM carts AS c
+                        INNER JOIN user AS u ON u.id = c.seller
+                        WHERE c.status = 'completed'
+                        AND u.id = ?";
+            $stmt2 = $this->conn->prepare($query2);
+            $stmt2->bind_param('i', $userId);
+            $stmt2->execute();
+            $result2 = $stmt2->get_result();
+            if($result2->num_rows > 0){
+                $row2 = $result2->fetch_assoc();
+                $totalCount = $row2["TotalCount"];
+
+            }
+
+            $query3 = "SELECT
+                SUM(s.total_amount) AS 'TotalAmount',
+                SUM(s.total_earning) AS 'TotalEarning',
+                DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY) AS 'WeekStart',
+  				DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 6 DAY) AS 'WeekEnd'
+                FROM user AS u
+                INNER JOIN sales AS s ON s.cashier_id = u.id
+                WHERE u.id = ?
+                AND YEARWEEK(CURDATE(), 1) = YEARWEEK(s.sale_date, 1)";
+
+            $stmt3 = $this->conn->prepare($query3);
+            $stmt3->bind_param('i', $userId);
+            $stmt3->execute();
+            $result3 = $stmt3->get_result();
+            if($result3->num_rows > 0){
+                $row3 = $result3->fetch_assoc();
+                $totalAmountWeek = $row3["TotalAmount"];
+                $totalEarningWeek = $row3["TotalEarning"];
+                $weekStart = $row3["WeekStart"];
+                $weekEnd = $row3["WeekEnd"];
+            }
+
+            $stmt4 = "SELECT 
+                        SUM(s.total_amount) AS TotalAmount,
+                        SUM(s.total_earning) AS TotalEarning,
+                        
+                        DATE_FORMAT(CURDATE(), '%Y-%m-01') AS MonthStart,
+                        LAST_DAY(CURDATE()) AS MonthEnd
+
+                        FROM user AS u
+                        INNER JOIN sales AS s ON s.cashier_id = u.id
+                        WHERE u.id = ?
+                        AND MONTH(s.sale_date) = MONTH(CURDATE())
+                        AND YEAR(s.sale_date) = YEAR(CURDATE())";
+            $stmt4 = $this->conn->prepare($stmt4);
+            $stmt4->bind_param('i', $userId);
+            $stmt4->execute();
+            $result4 = $stmt4->get_result();
+            if($result4->num_rows > 0){
+                $row4 = $result4->fetch_assoc();
+                $totalAmountMonth = $row4["TotalAmount"] = null ? $row4["TotalAmount"] : 0;
+                $totalEarningMonth = $row4["TotalEarning"] = null ? $row4["TotalEarning"] : 0;
+                $monthStart = $row4["MonthStart"];
+                $monthEnd = $row4["MonthEnd"];
+            }
+
+            $query5 = "SELECT
+                        u.first_name AS FirstName,
+                        u.last_name AS LastName,
+                        u.username AS Username,
+                        u.email AS Email
+                        FROM user AS u
+                        WHERE u.id = ?";
+            $stmt5 = $this->conn->prepare($query5);
+            $stmt5->bind_param('i', $userId);
+            $stmt5->execute();
+            $result5 = $stmt5->get_result();
+            if($result5->num_rows > 0){
+                $row5 = $result5->fetch_assoc();
+                $firstName = $row5["FirstName"];
+                $lastName = $row5["LastName"];
+                $username = $row5["Username"];
+                $email = $row5["Email"];
+            }
+
+
+            $sales = [];
+            $sales[] = [
+                "totalAmountToday" => $totalAmountToday,
+                "totalEarningToday" => $totalEarningToday,
+                "totalAmountWeek" => $totalAmountWeek,
+                "totalEarningWeek" => $totalEarningWeek,
+                "weekStart" => $weekStart,
+                "weekEnd" => $weekEnd,
+                "totalAmountMonth" => $totalAmountMonth,
+                "totalEarningMonth" => $totalEarningMonth,
+                "monthStart" => $monthStart,
+                "monthEnd" => $monthEnd,
+                "firstName" => $firstName,
+                "lastName" => $lastName,
+                "username" => $username,
+                "email" => $email,
+                "totalCount" => $totalCount
+            ];
+
+            return $sales;
+        }
+
+
+
+        public function getTransactionHistory($cashier_id){
+            $query1 = "SELECT c.cart_id,
+                                c.seller,
+                                c.status,
+                                c.order_code,
+                                c.total,
+                                c.failed_desc,
+                                c.total_earning,
+                                c.created_at,
+                                c.updated_at
+                        FROM carts AS c
+                        WHERE seller = ?
+                        AND status = 'completed'";
+            $stmt1 = $this->conn->prepare($query1);
+            $stmt1->bind_param('i', $cashier_id);
+            $stmt1->execute();
+            $result1 = $stmt1->get_result();
+            $transaction = [];
+            if ($result1 -> num_rows > 0) {
+                while($row = $result1->fetch_assoc()){
+                    $transaction[] = [
+                        "cartId" => $row["cart_id"],
+                        "seller" => $row["seller"],
+                        "status" => $row["status"],
+                        "orderCode" => $row["order_code"],
+                        "total" => $row["total"],
+                        "failedDesc" => $row["failed_desc"],
+                        "totalEarning" => $row["total_earning"],
+                        "createdAt" => $row["created_at"],
+                        "updatedAt" => $row["updated_at"]
+                    ];
+                }
+            }
+            else{
+                $transaction[] = [
+                    "cartId" => null,
+                    "seller" => null,
+                    "status" => null,
+                    "orderCode" => null,
+                    "total" => null,
+                    "failedDesc" => null,
+                    "totalEarning" => null,
+                    "createdAt" => null,
+                    "updatedAt" => null
+                ];
+            }
+            return $transaction;
+
+        }
+
+
+        public function getTransactionItems($cart_id, $seller_id){
+            $query1 = "SELECT ci.cart_items_id,
+                                c.seller,
+                                ci.cart_id,
+                                ci.product_id,
+                                ci.qty,
+                                ci.price,
+                                ci.batch_id,
+                                ci.cost_price,
+                                ci.earning,
+                                ci.created_at,
+                                ci.updated_at,
+                                p.product_name,
+                                p.product_code
+                        FROM cart_items AS ci
+                        INNER JOIN carts AS c ON c.cart_id = ci.cart_id
+                        INNER JOIN product AS p ON p.product_id = ci.product_id
+                        WHERE c.seller = ?
+                        AND ci.cart_id = ?";
+            $query1 = $this->conn->prepare($query1);
+            $query1->bind_param('ii', $seller_id, $cart_id);
+            $query1->execute();
+            $result1 = $query1->get_result();
+            $transactionItems = [];
+            if ($result1 -> num_rows > 0) {
+                while($row = $result1->fetch_assoc()){
+                    $transactionItems[] = [
+                        "cartItemsId" => $row["cart_items_id"],
+                        "seller" => $row["seller"],
+                        "cartId" => $row["cart_id"],
+                        "productId" => $row["product_id"],
+                        "qty" => $row["qty"],
+                        "price" => $row["price"],
+                        "batchId" => $row["batch_id"],
+                        "costPrice" => $row["cost_price"],
+                        "earning" => $row["earning"],
+                        "createdAt" => $row["created_at"],
+                        "updatedAt" => $row["updated_at"],
+                        "productName" => $row["product_name"],
+                        "productCode" => $row["product_code"]
+                    ];
+                }
+            }
+            else{
+                $transactionItems[] = [
+                    "cartItemsId" => null,
+                    "seller" => null,
+                    "cartId" => null,
+                    "productId" => null,
+                    "qty" => null,
+                    "price" => null,
+                    "batchId" => null,
+                    "costPrice" => null,
+                    "earning" => null,
+                    "createdAt" => null,
+                    "updatedAt" => null,
+                    "productName" => null,
+                    "productCode" => null
+                ];
+            }
+
+            return $transactionItems;
+
+        }
+
+        public function getProfile($user_id){
+            $query = "SELECT profile_pic FROM user
+                        WHERE id = ?";
+            $queryStmt = $this->conn->prepare($query);
+            $queryStmt->bind_param('i', $user_id);
+            $queryStmt->execute();
+            $result = $queryStmt->get_result();
+            $profile = [];
+            if($result->num_rows > 0){
+                $row = $result->fetch_assoc();
+                $profile[] = [
+                    "profilePic" => $row["profile_pic"]
+                ];
+            }
+            else{
+                $profile[] = [
+                    "profilePic" => null
+                ];
+            }
+
+            return $profile;
+        }
+
+        
+
+
+
 
     }
