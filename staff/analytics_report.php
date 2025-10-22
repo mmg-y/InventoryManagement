@@ -2,45 +2,61 @@
 include "../config.php";
 
 // Metrics 
-$totalRevenue = $conn->query("SELECT SUM(total) AS rev FROM carts WHERE status='completed'")
-    ->fetch_assoc()['rev'] ?? 0;
+$totalRevenue = $conn->query("
+    SELECT SUM(total_amount) AS rev
+    FROM sales
+")->fetch_assoc()['rev'] ?? 0;
 
-$dailySales = $conn->query("SELECT SUM(total) AS rev FROM carts WHERE status='completed' 
-                             AND DATE(created_at)=CURDATE()")
-    ->fetch_assoc()['rev'] ?? 0;
+$dailyRevenue = $conn->query("
+    SELECT SUM(total_amount) AS rev
+    FROM sales
+    WHERE DATE(sale_date) = CURDATE()
+")->fetch_assoc()['rev'] ?? 0;
 
-$ordersProcessed = $conn->query("SELECT COUNT(*) AS cnt FROM carts WHERE status='completed'")
-    ->fetch_assoc()['cnt'] ?? 0;
+$ordersProcessed = $conn->query("
+    SELECT COUNT(*) AS cnt
+    FROM sales
+")->fetch_assoc()['cnt'] ?? 0;
 
-$lowStock = $conn->query("SELECT COUNT(*) AS cnt FROM product WHERE quantity <= threshold")
-    ->fetch_assoc()['cnt'] ?? 0;
+// Low stock items
+$lowStock = $conn->query("
+    SELECT COUNT(*) AS cnt
+    FROM product
+    WHERE total_quantity <= threshold
+")->fetch_assoc()['cnt'] ?? 0;
 
-// Top Products 
+
+// Top products (this month)
 $topProducts = $conn->query("
-    SELECT p.product_name, p.product_picture, SUM(ci.qty) as units_sold, 
-           SUM(ci.qty * ci.price) as revenue, s.status_label
-    FROM cart_items ci
-    JOIN product p ON ci.product_id = p.product_id
-    JOIN carts c ON ci.cart_id = c.cart_id
-    LEFT JOIN status s ON p.notice_status = s.status_id
-    WHERE c.status='completed' AND MONTH(c.created_at)=MONTH(CURDATE())
+    SELECT p.product_name, p.product_picture, SUM(si.quantity) AS units_sold,
+           SUM(si.quantity * si.unit_price) AS revenue
+    FROM sales_items AS si
+    JOIN product AS p ON si.product_id = p.product_id
+    JOIN sales AS s ON si.sale_id = s.sales_id
+    WHERE MONTH(s.sale_date) = MONTH(CURDATE())
+      AND YEAR(s.sale_date) = YEAR(CURDATE())
     GROUP BY p.product_id
     ORDER BY units_sold DESC
     LIMIT 5
 ");
 
-// Employees 
-$employees = $conn->query("SELECT id, first_name, last_name, profile_pic, type, archived FROM user WHERE type='staff'");
 
-// Product Sales Trends (Bar) 
+// Employees
+$employees = $conn->query("
+    SELECT id, first_name, last_name, profile_pic, type
+    FROM user 
+    WHERE type IN ('cashier','warehouse_man')
+");
+
+// Product Sales Trends 
 $salesTrendsQuery = $conn->query("
-    SELECT DAYNAME(c.created_at) as day, cat.category_name, SUM(ci.qty) as qty
-    FROM cart_items ci
-    JOIN product p ON ci.product_id = p.product_id
-    JOIN carts c ON ci.cart_id = c.cart_id
-    JOIN category cat ON p.category = cat.category_id
-    WHERE c.status='completed' AND YEARWEEK(c.created_at,1)=YEARWEEK(CURDATE(),1)
-    GROUP BY day, cat.category_name
+    SELECT DAYNAME(s.sale_date) AS day, c.category_name, SUM(si.quantity) AS qty
+    FROM sales_items AS si
+    JOIN product AS p ON si.product_id = p.product_id
+    JOIN sales AS s ON si.sale_id = s.sales_id
+    JOIN category AS c ON p.category = c.category_id
+    WHERE YEARWEEK(s.sale_date,1) = YEARWEEK(CURDATE(),1)
+    GROUP BY day, c.category_name
 ");
 
 $salesData = [];
@@ -48,7 +64,6 @@ while ($row = $salesTrendsQuery->fetch_assoc()) {
     $salesData[$row['category_name']][$row['day']] = (int)$row['qty'];
 }
 
-// Ensure all days exist
 $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 foreach ($salesData as $cat => $values) {
     foreach ($days as $d) {
@@ -59,17 +74,24 @@ foreach ($salesData as $cat => $values) {
     ksort($salesData[$cat]);
 }
 
-// Product Comparison (Vegetables vs Meat & Seafood) 
+// Product Comparison 
+$categoriesResult = $conn->query("SELECT category_name FROM category");
+$categoryNames = [];
+while ($row = $categoriesResult->fetch_assoc()) {
+    $categoryNames[] = $row['category_name'];
+}
+
+$categoryList = "'" . implode("','", $categoryNames) . "'";
+
 $comparisonQuery = $conn->query("
-    SELECT DAYNAME(c.created_at) as day, cat.category_name, SUM(ci.qty) as qty
-    FROM cart_items ci
-    JOIN product p ON ci.product_id = p.product_id
-    JOIN carts c ON ci.cart_id = c.cart_id
-    JOIN category cat ON p.category = cat.category_id
-    WHERE c.status='completed'
-      AND cat.category_name IN ('Vegetables','Meat & Seafood')
-      AND YEARWEEK(c.created_at,1)=YEARWEEK(CURDATE(),1)
-    GROUP BY day, cat.category_name
+    SELECT DAYNAME(s.sale_date) AS day, c.category_name, SUM(si.quantity) AS qty
+    FROM sales_items AS si
+    JOIN product AS p ON si.product_id = p.product_id
+    JOIN sales AS s ON si.sale_id = s.sales_id
+    JOIN category AS c ON p.category = c.category_id
+    WHERE c.category_name IN ($categoryList)
+      AND YEARWEEK(s.sale_date,1) = YEARWEEK(CURDATE(),1)
+    GROUP BY day, c.category_name
 ");
 
 $comparisonData = [];
@@ -77,7 +99,8 @@ while ($row = $comparisonQuery->fetch_assoc()) {
     $comparisonData[$row['category_name']][$row['day']] = (int)$row['qty'];
 }
 
-foreach (['Vegetables', 'Meat & Seafood'] as $cat) {
+$days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+foreach ($comparisonData as $cat => $values) {
     foreach ($days as $d) {
         if (!isset($comparisonData[$cat][$d])) {
             $comparisonData[$cat][$d] = 0;
@@ -86,7 +109,10 @@ foreach (['Vegetables', 'Meat & Seafood'] as $cat) {
     ksort($comparisonData[$cat]);
 }
 
-// Convert PHP arrays → JS JSON
+$comparisonDataJSON = json_encode($comparisonData);
+$daysJSON = json_encode($days);
+
+
 $salesDataJSON = json_encode($salesData);
 $comparisonDataJSON = json_encode($comparisonData);
 $daysJSON = json_encode($days);
@@ -96,12 +122,6 @@ $daysJSON = json_encode($days);
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <div class="dashboard">
-
-    <?php if ($lowStock > 0): ?>
-        <div class="notification">
-            Low Stock Alert: <?= $lowStock ?> items need restocking.
-        </div>
-    <?php endif; ?>
 
     <div class="metrics">
         <div class="card">
@@ -116,7 +136,7 @@ $daysJSON = json_encode($days);
                 <i class="fas fa-dollar-sign"></i>
                 <div class="label">Daily Sales</div>
             </div>
-            <div class="value">₱<?= number_format($dailySales, 2) ?></div>
+            <div class="value">₱<?= number_format($dailyRevenue, 2) ?></div>
         </div>
         <div class="card">
             <div class="icon-label">
@@ -154,9 +174,9 @@ $daysJSON = json_encode($days);
                             <div class="name"><?= $p['product_name'] ?></div>
                             <div class="details"><?= $p['units_sold'] ?> units | ₱<?= number_format($p['revenue'], 2) ?></div>
                         </div>
-                        <span class="status"><?= $p['status_label'] ?></span>
                     </div>
                 <?php endwhile; ?>
+
             </div>
         </div>
 
@@ -179,13 +199,9 @@ $daysJSON = json_encode($days);
                             <div class="name"><?= $e['first_name'] . " " . $e['last_name'] ?></div>
                             <div class="role"><?= ucfirst($e['type']) ?></div>
                         </div>
-                        <?php if ($e['archived'] == 1): ?>
-                            <span class="badge archived">Archived</span>
-                        <?php else: ?>
-                            <span class="badge active">Active</span>
-                        <?php endif; ?>
                     </div>
                 <?php endwhile; ?>
+
             </div>
         </div>
     </div>

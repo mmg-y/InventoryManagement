@@ -1,8 +1,8 @@
 <?php
 session_start();
-include '../config.php'; // $conn (mysqli)
+include '../config.php';
 
-if (!isset($_SESSION['username']) || $_SESSION['type'] !== "staff") {
+if (!isset($_SESSION['username']) || $_SESSION['type'] !== "cashier") {
     header("Location: ../index.php");
     exit;
 }
@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: staff.php");
         exit;
     }
+
     if ($password !== '' && $password !== $confirm) {
         $_SESSION['error'] = "Passwords do not match.";
         header("Location: staff.php");
@@ -42,50 +43,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $profile_pic_path = $user['profile_pic'];
-    if (!empty($_FILES['profile_pic']['name'])) {
-        $upload_dir = "../uploads/";
-        if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-
-        $ext = pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION);
-        $filename = uniqid("profile_", true) . "." . $ext;
-        $target = $upload_dir . $filename;
-
-        if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $target)) {
-            $profile_pic_path = "uploads/" . $filename;
-            if (!empty($user['profile_pic']) && $user['profile_pic'] !== "uploads/default.png" && file_exists("../" . $user['profile_pic'])) {
-                unlink("../" . $user['profile_pic']);
-            }
-        }
-    }
+    $updated_at = date('Y-m-d H:i:s');
 
     if ($password !== '') {
         $hashed = password_hash($password, PASSWORD_DEFAULT);
-        $sql = "UPDATE user SET first_name=?, last_name=?, contact=?, email=?, username=?, password=?, profile_pic=? WHERE id=?";
+        $sql = "UPDATE user 
+                SET first_name=?, last_name=?, contact=?, email=?, username=?, password=?, updated_at=? 
+                WHERE id=?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sssssssi", $first_name, $last_name, $contact, $email, $username, $hashed, $profile_pic_path, $user['id']);
+        $stmt->bind_param("sssssssi", $first_name, $last_name, $contact, $email, $username, $hashed, $updated_at, $user['id']);
     } else {
-        $sql = "UPDATE user SET first_name=?, last_name=?, contact=?, email=?, username=?, profile_pic=? WHERE id=?";
+        $sql = "UPDATE user 
+                SET first_name=?, last_name=?, contact=?, email=?, username=?, updated_at=? 
+                WHERE id=?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssssssi", $first_name, $last_name, $contact, $email, $username, $profile_pic_path, $user['id']);
+        $stmt->bind_param("ssssssi", $first_name, $last_name, $contact, $email, $username, $updated_at, $user['id']);
     }
 
     if ($stmt->execute()) {
-        $_SESSION['first_name']  = $first_name;
-        $_SESSION['last_name']   = $last_name;
-        $_SESSION['contact']     = $contact;
-        $_SESSION['email']       = $email;
-        $_SESSION['username']    = $username;
-        $_SESSION['profile_pic'] = $profile_pic_path;
+        $_SESSION['first_name'] = $first_name;
+        $_SESSION['last_name']  = $last_name;
+        $_SESSION['contact']    = $contact;
+        $_SESSION['email']      = $email;
+        $_SESSION['username']   = $username;
 
         $_SESSION['success'] = "Profile updated successfully.";
         unset($_SESSION['open_profile_modal']);
     } else {
         $_SESSION['error'] = "Error updating profile: " . $stmt->error;
     }
-    $stmt->close();
 
+    $stmt->close();
     header("Location: staff.php");
     exit;
 }
-?>

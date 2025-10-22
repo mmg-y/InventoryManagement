@@ -122,8 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             <label>Role</label>
             <select name="type" required>
                 <option value="">Select Role</option>
-                <option value="staff" <?= (isset($type) && $type == 'staff') ? 'selected' : '' ?>>Staff</option>
-                <option value="bodegero" <?= (isset($type) && $type == 'bodegero') ? 'selected' : '' ?>>Bodegero</option>
+                <option value="staff" <?= (isset($type) && $type == 'cashier') ? 'selected' : '' ?>>Cashier</option>
+                <option value="bodegero" <?= (isset($type) && $type == 'warehouse_man') ? 'selected' : '' ?>>Warehouse Man</option>
             </select>
         </div>
 

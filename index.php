@@ -13,14 +13,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
 
         if ($username && $password) {
-            $stmt = $conn->prepare("SELECT * FROM user WHERE username=? LIMIT 1");
+            // Fetch the user without archived filtering
+            $stmt = $conn->prepare("SELECT * FROM user WHERE username = ? LIMIT 1");
             $stmt->bind_param("s", $username);
             $stmt->execute();
             $result = $stmt->get_result();
 
             if ($row = $result->fetch_assoc()) {
+                // ✅ Handle both hashed or plain-text passwords
+                $validPassword = false;
+
                 if (password_verify($password, $row['password'])) {
-                    // Set session for all active users (no archive restriction)
+                    $validPassword = true;
+                } elseif ($password === $row['password']) {
+                    $validPassword = true;
+                }
+
+                if ($validPassword) {
+                    // Set session data
                     $_SESSION['id']          = $row['id'];
                     $_SESSION['username']    = $row['username'];
                     $_SESSION['first_name']  = $row['first_name'];
@@ -30,12 +40,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['type']        = $row['type'];
                     $_SESSION['profile_pic'] = !empty($row['profile_pic']) ? $row['profile_pic'] : 'uploads/default.png';
 
-                    if ($row['type'] === "admin") {
-                        header("Location: admin/admin.php");
-                    } elseif ($row['type'] === "cashier") {
-                        header("Location: staff/staff.php");
-                    } elseif ($row['type'] === "warehouse_man") {
-                        header("Location: budegero/budegero.php");
+                    // Redirect based on user type
+                    switch ($row['type']) {
+                        case 'admin':
+                            header("Location: admin/admin.php");
+                            break;
+                        case 'cashier':
+                            header("Location: staff/staff.php");
+                            break;
+                        case 'warehouse_man':
+                            header("Location: budegero/budegero.php");
+                            break;
+                        default:
+                            $loginMessage = "Unknown account type!";
                     }
                     exit;
                 } else {
@@ -51,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">

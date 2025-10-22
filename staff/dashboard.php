@@ -2,18 +2,16 @@
 // session_start();
 include "../config.php";
 
-if (!isset($_SESSION['id']) || $_SESSION['type'] !== "staff") {
+if (!isset($_SESSION['id']) || $_SESSION['type'] !== "cashier") {
     header("Location: ../index.php");
     exit;
 }
 
-$staff_id = $_SESSION['id'];
+$cashier_id = $_SESSION['id'];
 
-// Get selected category from query string
 $selected_category = $_GET['category'] ?? 'all';
 $search = trim($_GET['q'] ?? '');
 
-// Build where conditions
 $where = [];
 if ($selected_category !== 'all') {
     $where[] = "p.category = " . intval($selected_category);
@@ -24,38 +22,60 @@ if ($search !== '') {
 }
 $where_sql = $where ? "WHERE " . implode(" AND ", $where) : "";
 
-// Fetch products
 $products = $conn->query("
-    SELECT p.*, c.category_name 
+    SELECT 
+        p.product_id,
+        p.product_name,
+        p.product_picture,
+        p.total_quantity,
+        p.reserved_qty,
+        p.category,
+        c.category_name,
+        rv.percent AS retail_percent,
+        COALESCE(ps.remaining_qty, 0) AS remaining_qty,
+        COALESCE(ps.cost_price, 0) AS cost_price,
+        ps.product_stock_id AS batch_id,
+        ps.status AS batch_status
     FROM product p
     JOIN category c ON p.category = c.category_id
+    LEFT JOIN retail_variables rv ON p.retail_id = rv.retail_id
+    LEFT JOIN (
+        SELECT * FROM product_stocks WHERE status = 'active' ORDER BY created_at DESC
+    ) ps ON p.product_id = ps.product_id
     $where_sql
+    GROUP BY p.product_id
     ORDER BY p.product_name
 ");
 
-// Get categories
 $categories = $conn->query("SELECT * FROM category ORDER BY category_name");
 
-// Check or create active cart
-$cart = $conn->query("SELECT * FROM carts WHERE seller = $staff_id AND status = 'pending' LIMIT 1")->fetch_assoc();
+// Get or create cart
+$cart = $conn->query("SELECT * FROM carts WHERE seller = '$cashier_id' AND status = 'pending' LIMIT 1")->fetch_assoc();
 if (!$cart) {
-    $conn->query("INSERT INTO carts (seller, status, total, created_at) VALUES ($staff_id, 'pending', 0, NOW())");
+    $conn->query("
+        INSERT INTO carts (seller, status, total, total_earning, created_at, updated_at) 
+        VALUES ('$cashier_id', 'pending', 0, 0, NOW(), NOW())
+    ");
     $cart_id = $conn->insert_id;
 } else {
     $cart_id = $cart['cart_id'];
 }
 
-// Get cart items
+// Cart items query including product_picture
 $cart_items = $conn->query("
-    SELECT ci.*, p.product_name, p.product_picture, p.price AS product_price
-    FROM cart_items ci 
+    SELECT 
+        ci.cart_items_id,
+        ci.qty,
+        ci.price,
+        p.product_name,
+        p.product_picture
+    FROM cart_items ci
     JOIN product p ON ci.product_id = p.product_id
     WHERE ci.cart_id = $cart_id
 ");
 
-// Billing history
-$where_billing_sql = "WHERE c.seller = $staff_id AND c.status = 'completed'";
-
+// Billing queries remain the same
+$where_billing_sql = "WHERE c.seller = '$cashier_id' AND c.status = 'completed'";
 if (!empty($_GET['from'])) {
     $from = $conn->real_escape_string($_GET['from']);
     $where_billing_sql .= " AND DATE(c.created_at) >= '$from'";
@@ -69,29 +89,31 @@ if (!empty($_GET['cart_search'])) {
     $where_billing_sql .= " AND c.cart_id = $cart_search";
 }
 
-// Sorting 
 $valid_sort_columns = ["c.cart_id", "total_items", "c.total", "c.created_at"];
 $sort_col = $_GET['sort'] ?? "c.created_at";
-$sort_dir = $_GET['dir'] ?? "DESC";
+$sort_dir = strtoupper($_GET['dir'] ?? "DESC");
 if (!in_array($sort_col, $valid_sort_columns)) $sort_col = "c.created_at";
-$sort_dir = strtoupper($sort_dir) === "ASC" ? "ASC" : "DESC";
+$sort_dir = $sort_dir === "ASC" ? "ASC" : "DESC";
 
-// Records per page 
 $per_page = isset($_GET['records']) ? max(5, intval($_GET['records'])) : 10;
 $page_num = max(1, intval($_GET['bpage'] ?? 1));
 $offset = ($page_num - 1) * $per_page;
 
-// Count total rows
-$count_sql = "SELECT COUNT(DISTINCT c.cart_id) as total
-              FROM carts c
-              JOIN cart_items ci ON ci.cart_id = c.cart_id
-              $where_billing_sql";
+$count_sql = "
+    SELECT COUNT(DISTINCT c.cart_id) AS total
+    FROM carts c
+    JOIN cart_items ci ON ci.cart_id = c.cart_id
+    $where_billing_sql
+";
 $total_billing_rows = $conn->query($count_sql)->fetch_assoc()['total'];
 $total_billing_pages = ceil($total_billing_rows / $per_page);
 
-// Fetch billing rows
 $billing = $conn->query("
-    SELECT c.cart_id, c.total, c.created_at, COUNT(ci.cart_items_id) as total_items
+    SELECT 
+        c.cart_id, 
+        c.total, 
+        c.created_at, 
+        COUNT(ci.cart_items_id) AS total_items
     FROM carts c
     JOIN cart_items ci ON ci.cart_id = c.cart_id
     $where_billing_sql
@@ -100,16 +122,23 @@ $billing = $conn->query("
     LIMIT $per_page OFFSET $offset
 ");
 
+
+$retail_percent = $conn->query("
+    SELECT rv.percent
+    FROM cart_items ci
+    JOIN product p ON ci.product_id = p.product_id
+    JOIN retail_variables rv ON p.retail_id = rv.retail_id
+    WHERE ci.cart_id = $cart_id
+    LIMIT 1
+")->fetch_assoc()['percent'] ?? 0;
+
+
 $columns = [
     'c.cart_id'    => 'Cart #',
     'total_items'  => 'Items',
     'c.total'      => 'Total',
     'c.created_at' => 'Date'
 ];
-
-// Current sorting from GET
-$sort = $_GET['sort'] ?? 'c.created_at';
-$order = $_GET['dir'] ?? 'DESC';
 ?>
 
 
@@ -117,8 +146,9 @@ $order = $_GET['dir'] ?? 'DESC';
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <div class="dashboard">
-
     <div class="dashboard-left">
+
+        <!-- PRODUCTS -->
         <div class="products">
             <h2>Products</h2>
             <div class="category-filter">
@@ -128,60 +158,62 @@ $order = $_GET['dir'] ?? 'DESC';
                     <?php
                     $categories->data_seek(0);
                     while ($cat = $categories->fetch_assoc()): ?>
-                        <option value="<?= $cat['category_id'] ?>"
-                            <?= $selected_category == $cat['category_id'] ? 'selected' : '' ?>>
+                        <option value="<?= $cat['category_id'] ?>" <?= $selected_category == $cat['category_id'] ? 'selected' : '' ?>>
                             <?= htmlspecialchars($cat['category_name']) ?>
                         </option>
                     <?php endwhile; ?>
                 </select>
             </div>
 
-            <div class="product-grid">
-                <?php while ($row = $products->fetch_assoc()):
-                    $picture = basename($row['product_picture']); ?>
-                    <div class="product-card" data-category="<?= $row['category'] ?>">
-                        <img src="../uploads/<?= htmlspecialchars($picture) ?>" alt="">
-                        <h4><?= htmlspecialchars($row['product_name']) ?></h4>
-                        <p>₱<?= number_format($row['price'], 2) ?></p>
-                        <form method="post" action="add_to_cart.php">
-                            <input type="hidden" name="product_id" value="<?= $row['product_id'] ?>">
-                            <input type="hidden" name="cart_id" value="<?= $cart_id ?>">
-                            <button type="submit">Add</button>
-                        </form>
+            <div id="product-grid" class="product-grid">
+                <?php while ($p = $products->fetch_assoc()):
+                    $price = $p['cost_price'] * (1 + ($p['retail_percent'] / 100));
+                    $available_stock = $p['remaining_qty'] - $p['reserved_qty'];
+                    $picture = $p['product_picture'] ? htmlspecialchars(basename($p['product_picture'])) : '';
+                ?>
+                    <div class="product-card" data-category="<?= $p['category'] ?>">
+                        <?php if ($picture && file_exists("../uploads/$picture")): ?>
+                            <img src="../uploads/<?= $picture ?>" alt="<?= htmlspecialchars($p['product_name']) ?>">
+                        <?php else: ?>
+                            <div class="no-image">No Image</div>
+                        <?php endif; ?>
+                        <h4><?= htmlspecialchars($p['product_name']) ?></h4>
+                        <p>₱<?= number_format($price, 2) ?></p>
+
+                        <?php if ($available_stock > 0): ?>
+                            <form method="post" action="add_to_cart.php">
+                                <input type="hidden" name="product_id" value="<?= $p['product_id'] ?>">
+                                <input type="hidden" name="cart_id" value="<?= $cart_id ?>">
+                                <button type="submit">Add</button>
+                            </form>
+                        <?php else: ?>
+                            <button disabled>Out of Stock</button>
+                        <?php endif; ?>
                     </div>
                 <?php endwhile; ?>
             </div>
         </div>
 
+        <!-- BILLING HISTORY -->
         <div class="billing-history">
             <h2>Billing History</h2>
-            <form method="get" class="billing-filter">
-                <label for="from">From:</label>
+            <form method="get" class="billing-filter" id="billing-filter">
+                <label>From:</label>
                 <input type="date" name="from" value="<?= htmlspecialchars($_GET['from'] ?? '') ?>">
-
-                <label for="to">To:</label>
+                <label>To:</label>
                 <input type="date" name="to" value="<?= htmlspecialchars($_GET['to'] ?? '') ?>">
-
-                <label for="cart_search">Cart #:</label>
+                <label>Cart #:</label>
                 <input type="text" name="cart_search" value="<?= htmlspecialchars($_GET['cart_search'] ?? '') ?>">
-
-
                 <div class="filter-group">
-                    <label for="records">Show:</label>
-                    <select name="records" id="records" onchange="this.form.submit()">
-                        <?php
-                        $records_options = [10, 20, 30, 40, 50];
-                        $selected_records = $_GET['records'] ?? 10;
-                        foreach ($records_options as $opt) {
-                            $selected = ($opt == $selected_records) ? "selected" : "";
-                            echo "<option value='$opt' $selected>$opt</option>";
-                        }
-                        ?>
+                    <label>Show:</label>
+                    <select name="records" onchange="this.form.submit()">
+                        <?php foreach ([10, 20, 30, 40, 50] as $opt):
+                            $sel = ($_GET['records'] ?? 10) == $opt ? "selected" : "";
+                            echo "<option value='$opt' $sel>$opt</option>";
+                        endforeach; ?>
                     </select>
                     <span>records</span>
                 </div>
-
-
                 <button type="submit">Filter</button>
             </form>
 
@@ -190,14 +222,11 @@ $order = $_GET['dir'] ?? 'DESC';
                     <thead>
                         <tr>
                             <?php foreach ($columns as $col => $label):
-                                $indicator = ($sort === $col) ? ($order === 'ASC' ? '▲' : '▼') : '';
-                                $newOrder = ($sort === $col && $order === 'ASC') ? 'DESC' : 'ASC';
+                                $indicator = ($sort_col === $col) ? ($sort_dir === 'ASC' ? '▲' : '▼') : '';
+                                $new_dir = ($sort_col === $col && $sort_dir === 'ASC') ? 'DESC' : 'ASC';
                             ?>
                                 <th>
-                                    <a href="#"
-                                        class="sort"
-                                        data-col="<?= $col ?>"
-                                        data-dir="<?= $newOrder ?>">
+                                    <a href="#" class="sort" data-col="<?= $col ?>" data-dir="<?= $new_dir ?>">
                                         <?= $label ?> <?= $indicator ?>
                                     </a>
                                 </th>
@@ -215,37 +244,31 @@ $order = $_GET['dir'] ?? 'DESC';
                         <?php endwhile; ?>
                     </tbody>
                 </table>
-
-                <div class="pagination">
-                    <?php if ($page_num > 1): ?>
-                        <a href="#" class="page-link" data-page="<?= $page_num - 1 ?>">&laquo; Prev</a>
-                    <?php endif; ?>
-                    <?php for ($i = 1; $i <= $total_billing_pages; $i++): ?>
-                        <a href="#" class="page-link <?= $i == $page_num ? 'active' : '' ?>" data-page="<?= $i ?>"><?= $i ?></a>
-                    <?php endfor; ?>
-                    <?php if ($page_num < $total_billing_pages): ?>
-                        <a href="#" class="page-link" data-page="<?= $page_num + 1 ?>">Next &raquo;</a>
-                    <?php endif; ?>
-                </div>
             </div>
         </div>
     </div>
 
+    <!-- CART -->
     <div class="cart">
         <h2>Cart</h2>
         <div class="cart-items">
             <?php
             $subtotal = 0;
             while ($ci = $cart_items->fetch_assoc()):
-                $line_total = $ci['qty'] * $ci['product_price'];
+                $item_price = $ci['price'];
+                $line_total = $item_price * $ci['qty'];
                 $subtotal += $line_total;
-                $ci_picture = basename($ci['product_picture']);
+                $ci_picture = $ci['product_picture'] ? htmlspecialchars(basename($ci['product_picture'])) : '';
             ?>
                 <div class="cart-item">
-                    <img src="../uploads/<?= htmlspecialchars($ci_picture) ?>" alt="">
+                    <?php if ($ci_picture && file_exists("../uploads/$ci_picture")): ?>
+                        <img src="../uploads/<?= $ci_picture ?>" alt="<?= htmlspecialchars($ci['product_name']) ?>">
+                    <?php else: ?>
+                        <div class="no-image">No Image</div>
+                    <?php endif; ?>
                     <div class="cart-item-info">
                         <?= htmlspecialchars($ci['product_name']) ?><br>
-                        ₱<?= number_format($ci['product_price'], 2) ?>
+                        ₱<?= number_format($item_price, 2) ?>
                     </div>
                     <div class="cart-item-qty">
                         <form method="post" action="update_cart.php" style="display:inline;">
@@ -261,76 +284,60 @@ $order = $_GET['dir'] ?? 'DESC';
                 </div>
             <?php endwhile; ?>
         </div>
-        <?php
-        $vat = $subtotal * 0.12;
-        $grand_total = $subtotal + $vat;
-        ?>
+
         <div class="totals">
             <div><span>Subtotal</span><span>₱<?= number_format($subtotal, 2) ?></span></div>
-            <div><span>VAT (12%)</span><span>₱<?= number_format($vat, 2) ?></span></div>
-            <div><strong>Grand Total</strong><strong>₱<?= number_format($grand_total, 2) ?></strong></div>
+            <div><span>Retail Percent</span><span><?= $retail_percent ?>%</span></div>
+            <div><strong>Grand Total</strong><strong>₱<?= number_format($subtotal, 2) ?></strong></div>
         </div>
+
+
         <form method="post" action="checkout.php">
             <input type="hidden" name="cart_id" value="<?= $cart_id ?>">
-            <input type="hidden" name="total" value="<?= $grand_total ?>">
+            <input type="hidden" name="total" value="<?= $subtotal ?>">
             <button class="checkout-btn">Complete Purchase</button>
         </form>
     </div>
-
 </div>
 
 
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         const select = document.getElementById("categorySelect");
         select.addEventListener("change", () => {
             const url = new URL(window.location.href);
             url.searchParams.set("category", select.value);
-            // keep search term if present
-            const searchBox = document.querySelector('.search input[name="q"]');
-            if (searchBox && searchBox.value) {
-                url.searchParams.set("q", searchBox.value);
-            }
             window.location.href = url.toString();
         });
     });
 </script>
 
 <script>
-    function loadBilling(params = {}) {
-        $.get(window.location.pathname, params, function(data) {
-            $("#billing-results").html(
-                $(data).find("#billing-results").html()
-            );
+    $(document).ready(function() {
+        $('.add-to-cart-form').submit(function(e) {
+            e.preventDefault();
+            var form = $(this);
+            $.post('add_to_cart.php', form.serialize(), function() {
+                refreshCartAndProducts();
+            });
         });
-    }
 
-    // Initial load
-    loadBilling();
+        $('.update-cart-form').submit(function(e) {
+            e.preventDefault();
+            var form = $(this);
+            $.post('update_cart.php', form.serialize(), function() {
+                refreshCartAndProducts();
+            });
+        });
 
-    // Handle filter form
-    $("#billing-filter").on("submit", function(e) {
-        e.preventDefault();
-        loadBilling($(this).serialize());
-    });
+        function refreshCartAndProducts() {
+            $.get('refresh_cart.php', function(data) {
+                $('#product-grid').html(data.product_grid);
+                $('.cart-items').html(data.cart_items);
+                $('.totals').html(data.totals);
+            }, 'json');
+        }
 
-    // Handle pagination (delegated)
-    $(document).on("click", ".page-link", function(e) {
-        e.preventDefault();
-        let params = $("#billing-filter").serialize() + "&bpage=" + $(this).data("page");
-        loadBilling(params);
-    });
-
-    // Handle sorting (now uses PHP-provided data-dir)
-    $(document).on("click", ".sort", function(e) {
-        e.preventDefault();
-        let col = $(this).data("col");
-        let dir = $(this).data("dir");
-
-        let params = $("#billing-filter").serialize() + "&sort=" + col + "&dir=" + dir;
-        loadBilling(params);
     });
 </script>
