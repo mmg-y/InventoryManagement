@@ -67,9 +67,9 @@ $unreadCount = count(array_filter($notifications, fn($note) => !$note['read']));
                         <!-- <span class="team-plan">Smart sales, Smart Store</span> -->
                     </div>
                 </div>
-                <button class="collapse-btn" id="collapseBtn">
+                <!-- <button class="collapse-btn" id="collapseBtn">
                     <i class="fa-solid fa-chevron-left"></i>
-                </button>
+                </button> -->
             </div>
         </div>
 

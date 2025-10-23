@@ -93,56 +93,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     <?php endif; ?>
 
     <form method="POST" enctype="multipart/form-data">
-        <div class="profile-upload-wrapper">
+        <div class="profile-section">
             <div class="profile-preview">
                 <img id="profilePreview" src="<?= $profile_pic ?? '../uploads/default.png' ?>" alt="Profile Picture">
             </div>
+            <label class="upload-label" for="profile_pic">Upload Profile Picture</label>
             <input type="file" name="profile_pic" id="profile_pic" accept="image/*">
         </div>
 
-        <div class="form-fields">
-            <label>First Name</label>
-            <input type="text" name="first_name" value="<?= isset($first_name) ? htmlspecialchars($first_name) : '' ?>" required>
+        <div class="form-grid">
+            <div class="input-group">
+                <label><i class="fas fa-user"></i> First Name</label>
+                <input type="text" name="first_name" value="<?= htmlspecialchars($first_name ?? '') ?>" required>
+            </div>
 
-            <label>Last Name</label>
-            <input type="text" name="last_name" value="<?= isset($last_name) ? htmlspecialchars($last_name) : '' ?>" required>
+            <div class="input-group">
+                <label><i class="fas fa-user"></i> Last Name</label>
+                <input type="text" name="last_name" value="<?= htmlspecialchars($last_name ?? '') ?>" required>
+            </div>
 
-            <label>Contact</label>
-            <input type="text" name="contact" value="<?= isset($contact) ? htmlspecialchars($contact) : '' ?>" required>
+            <div class="input-group">
+                <label><i class="fas fa-phone"></i> Contact</label>
+                <input type="text" name="contact" value="<?= htmlspecialchars($contact ?? '') ?>" required>
+            </div>
 
-            <label>Email</label>
-            <input type="email" name="email" value="<?= isset($email) ? htmlspecialchars($email) : '' ?>" required>
+            <div class="input-group">
+                <label><i class="fas fa-envelope"></i> Email</label>
+                <input type="email" name="email" value="<?= htmlspecialchars($email ?? '') ?>" required>
+            </div>
 
-            <label>Username</label>
-            <input type="text" name="username" value="<?= isset($username) ? htmlspecialchars($username) : '' ?>" required>
+            <div class="input-group">
+                <label><i class="fas fa-user-circle"></i> Username</label>
+                <input type="text" name="username" value="<?= htmlspecialchars($username ?? '') ?>" required>
+            </div>
 
-            <label>Password</label>
-            <input type="password" name="password" required>
+            <div class="input-group">
+                <label><i class="fas fa-lock"></i> Password</label>
+                <input type="password" name="password" required>
+            </div>
 
-            <label>Role</label>
-            <select name="type" required>
-                <option value="">Select Role</option>
-                <option value="staff" <?= (isset($type) && $type == 'cashier') ? 'selected' : '' ?>>Cashier</option>
-                <option value="bodegero" <?= (isset($type) && $type == 'warehouse_man') ? 'selected' : '' ?>>Warehouse Man</option>
-            </select>
+            <div class="input-group full-width">
+                <label><i class="fas fa-user-tag"></i> Role</label>
+                <select name="type" required>
+                    <option value="">Select Role</option>
+                    <option value="cashier" <?= (isset($type) && $type == 'cashier') ? 'selected' : '' ?>>Cashier</option>
+                    <option value="warehouse_man" <?= (isset($type) && $type == 'warehouse_man') ? 'selected' : '' ?>>Warehouse Man</option>
+                </select>
+            </div>
         </div>
 
-        <button type="submit" name="add_user" class="save-btn">Create Account</button>
+        <button type="submit" name="add_user" class="save-btn"><i class="fas fa-user-plus"></i> Create Account</button>
     </form>
 </div>
-
 
 <script>
     const profileInput = document.getElementById('profile_pic');
     const profilePreview = document.getElementById('profilePreview');
-
     profileInput.addEventListener('change', function() {
         const file = this.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = function(e) {
-                profilePreview.src = e.target.result;
-            }
+            reader.onload = e => profilePreview.src = e.target.result;
             reader.readAsDataURL(file);
         } else {
             profilePreview.src = '../uploads/default.png';

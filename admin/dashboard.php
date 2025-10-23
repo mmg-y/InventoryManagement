@@ -1,36 +1,39 @@
 <?php
 include '../config.php';
 
-// User, Product, Purchase, Sales totals 
 $userCount = $conn->query("SELECT COUNT(*) AS total FROM user")->fetch_assoc()['total'];
 $productCount = $conn->query("SELECT COUNT(*) AS total FROM product")->fetch_assoc()['total'];
 $purchaseCount = $conn->query("SELECT COUNT(*) AS total FROM product_stocks")->fetch_assoc()['total'];
-$salesRevenue = $conn->query("SELECT IFNULL(SUM(total),0) AS revenue FROM carts WHERE status='completed'")->fetch_assoc()['revenue'];
+$salesRevenue = $conn->query("SELECT IFNULL(SUM(total_amount),0) AS revenue FROM sales")->fetch_assoc()['revenue'];
 
-// Sales prediction & last 7 days revenue
+// sales growth
 $last7daysSales = $conn->query("
-    SELECT SUM(total) AS total
-    FROM carts
-    WHERE status='completed'
-      AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+    SELECT SUM(total_amount) AS total
+    FROM sales
+    WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
 ")->fetch_assoc()['total'] ?? 0;
 
-// Previous 7 days revenue (days 8-14 ago)
 $prev7daysSales = $conn->query("
-    SELECT SUM(total) AS total
-    FROM carts
-    WHERE status='completed'
-      AND created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
-      AND created_at < DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+    SELECT SUM(total_amount) AS total
+    FROM sales
+    WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+      AND sale_date < DATE_SUB(CURDATE(), INTERVAL 7 DAY)
 ")->fetch_assoc()['total'] ?? 0;
 
-// Calculate % growth
 if ($prev7daysSales > 0) {
-    $salesPrediction = (($last7daysSales - $prev7daysSales) / $prev7daysSales) * 100;
+    $growth = (($last7daysSales - $prev7daysSales) / $prev7daysSales) * 100;
+    $salesPrediction = ($growth >= 0 ? '+' : '') . round($growth, 2) . "% (₱" . number_format($last7daysSales, 2) . " vs ₱" . number_format($prev7daysSales, 2) . ")";
 } else {
-    $salesPrediction = 0; // fallback
+    $salesPrediction = "₱" . number_format($last7daysSales, 2) . " this week — no data last week";
 }
-$salesPrediction = ($salesPrediction >= 0 ? '+' : '') . round($salesPrediction, 2) . '%';
+
+$comparisonLabels = ['Previous 7 Days', 'Last 7 Days'];
+$comparisonValues = [
+    (float)$prev7daysSales,
+    (float)$last7daysSales
+];
+
+// $salesPrediction = ($salesPrediction >= 0 ? '+' : '') . round($salesPrediction, 2) . '%';
 
 $recentPurchases = $conn->query("
     SELECT ps.created_at AS date, sp.name AS supplier, ps.quantity AS items
@@ -40,21 +43,19 @@ $recentPurchases = $conn->query("
     LIMIT 5
 ");
 
-// Recent Sales 
 $recentSales = $conn->query("
-    SELECT c.created_at AS date, c.seller AS customer, c.total AS total_amount
-    FROM carts c
-    WHERE c.status='completed'
-    ORDER BY c.created_at DESC
+    SELECT s.sale_date AS date, CONCAT(u.first_name, ' ', u.last_name) AS cashier, s.total_amount AS total_amount
+    FROM sales s
+    LEFT JOIN user u ON s.cashier_id = u.id
+    ORDER BY s.sale_date DESC
     LIMIT 5
 ");
 
-// Sales Trend 
+// sales trend
 $salesTrend = $conn->query("
-    SELECT DATE(created_at) AS sale_date, SUM(total) AS daily_total
-    FROM carts
-    WHERE status='completed'
-    GROUP BY DATE(created_at)
+    SELECT DATE(sale_date) AS sale_date, SUM(total_amount) AS daily_total
+    FROM sales
+    GROUP BY DATE(sale_date)
     ORDER BY sale_date ASC
 ");
 
@@ -70,10 +71,9 @@ if (empty($trendData['labels'])) {
     $trendData['values'] = [0];
 }
 
-// Low Stock Products 
 $lowStockProducts = $conn->query("
-    SELECT product_name, total_quantity 
-    FROM product 
+    SELECT product_name, total_quantity
+    FROM product
     WHERE total_quantity <= threshold
     LIMIT 5
 ");
@@ -85,13 +85,11 @@ if ($lowStockProducts && $lowStockProducts->num_rows > 0) {
         $inventoryLabels[] = $row['product_name'];
         $inventoryValues[] = $row['total_quantity'];
     }
-}
-if (empty($inventoryLabels)) {
+} else {
     $inventoryLabels = ['No Products'];
     $inventoryValues = [0];
 }
 
-// Supplier Stats 
 $supplierStats = $conn->query("
     SELECT sp.name, COUNT(ps.product_stock_id) AS total_orders
     FROM product_stocks ps
@@ -111,14 +109,12 @@ if ($supplierStats && $supplierStats->num_rows > 0) {
     $supplierValues = [0];
 }
 
-// Next 7-day forecast per product (moving average) 
 $salesDataQuery = "
-    SELECT p.product_name, DATE(c.created_at) as sale_date, SUM(ci.qty) as total_qty
-    FROM cart_items ci
-    JOIN product p ON ci.product_id = p.product_id
-    JOIN carts c ON ci.cart_id = c.cart_id
-    WHERE c.status = 'completed'
-    GROUP BY p.product_id, DATE(c.created_at)
+    SELECT p.product_name, DATE(s.sale_date) as sale_date, SUM(si.quantity) as total_qty
+    FROM sales_items si
+    JOIN product p ON si.product_id = p.product_id
+    JOIN sales s ON si.sale_id = s.sales_id
+    GROUP BY p.product_id, DATE(s.sale_date)
     ORDER BY p.product_name, sale_date ASC
 ";
 $result = $conn->query($salesDataQuery);
@@ -129,7 +125,7 @@ while ($result && $row = $result->fetch_assoc()) {
     $salesData[$row['product_name']]['values'][] = (int)$row['total_qty'];
 }
 
-// Moving average forecast for next 7 days
+// Moving average forecast
 $window = 7;
 $predictions = [];
 foreach ($salesData as $product => $data) {
@@ -145,11 +141,11 @@ foreach ($salesData as $product => $data) {
         $predictions[$product]['labels'][] = $date->format('Y-m-d');
         $predictions[$product]['values'][] = round($avg, 2);
 
-        $values[] = $avg; // append for rolling window
+        $values[] = $avg; // rolling window
     }
 }
 
-// Fallback if no sales
+// Fallback if no data
 if (empty($salesData)) {
     $salesData['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
     $predictions['No Data'] = ['labels' => [date('Y-m-d')], 'values' => [0]];
@@ -158,11 +154,12 @@ if (empty($salesData)) {
 
 
 
+
 <link rel="stylesheet" href="../css/dashboard.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- <h1 class="page-title">Admin Dashboard</h1> -->
+<h1 class="page-title">Admin Dashboard</h1>
 
 <div class="cards">
     <div class="card">
@@ -179,12 +176,12 @@ if (empty($salesData)) {
     </div>
     <div class="card">
         <h3><i class="fas fa-coins"></i> Sales Revenue</h3>
-        <p>₱<?= number_format($salesRevenue, 2) ?></p>
+        <p class="revenue">₱<?= number_format($salesRevenue, 2) ?></p>
     </div>
-    <div class="card">
+    <!-- <div class="card">
         <h3><i class="fas fa-chart-line"></i> Sales Prediction</h3>
         <p>Revenue growth (last 7 days vs previous 7 days): <strong><?= $salesPrediction ?></strong></p>
-    </div>
+    </div> -->
 </div>
 
 
@@ -193,6 +190,13 @@ if (empty($salesData)) {
     <div class="chart-row">
         <div class="chart-card full-width">
             <canvas id="salesTrendChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-row">
+        <div class="chart-card full-width">
+            <h3>Weekly Sales Comparison</h3>
+            <canvas id="weeklyComparisonChart"></canvas>
         </div>
     </div>
 
@@ -205,7 +209,6 @@ if (empty($salesData)) {
             <canvas id="supplierChart"></canvas>
         </div>
     </div>
-
 </div>
 
 <div class="tables">
@@ -232,14 +235,15 @@ if (empty($salesData)) {
         <table>
             <tr>
                 <th>Date</th>
-                <th>Customer</th>
+                <th>Cashier</th>
                 <th>Total</th>
             </tr>
             <?php while ($row = $recentSales->fetch_assoc()): ?>
                 <tr>
                     <td><?= htmlspecialchars($row['date']) ?></td>
-                    <td><?= htmlspecialchars($row['customer']) ?></td>
+                    <td><?= htmlspecialchars($row['cashier'] ?? 'N/A') ?></td>
                     <td>₱<?= number_format($row['total_amount'], 2) ?></td>
+
                 </tr>
             <?php endwhile; ?>
         </table>
@@ -270,6 +274,45 @@ if (empty($salesData)) {
             }
         }
     });
+
+    new Chart(document.getElementById('weeklyComparisonChart'), {
+        type: 'bar',
+        data: {
+            labels: <?= json_encode($comparisonLabels) ?>,
+            datasets: [{
+                label: 'Total Sales (₱)',
+                data: <?= json_encode($comparisonValues) ?>,
+                backgroundColor: [
+                    'rgba(220, 53, 69, 0.6)',
+                    'rgba(40, 167, 69, 0.6)'
+                ],
+                borderColor: [
+                    'rgba(220, 53, 69, 1)',
+                    'rgba(40, 167, 69, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Total Sales (₱)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
 
     new Chart(document.getElementById('inventoryChart'), {
         type: 'bar',

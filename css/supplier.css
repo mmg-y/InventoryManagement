@@ -4,12 +4,16 @@
     --black: #000;
     --smokey: #100c08;
     --white: #fff;
-    --blue: #102C57;
-    --whiteOne: #f6f7fb;
-    --whiteTwo: #eee;
-    --whiteThree: #ccc;
-    --darkGray: #333;
+    --ghostWhite: #e5e7eb;
+    --platinum: #e0f2fe;
+    --silver: #f3f4f6;
+    --gray: #6b7280;
     --lightGray: #555;
+    --darkGray: #333;
+    --cyan: #EBF4F6;
+    --aqua: #37B7C3;
+    --teal: #088395;
+    --navy: #071952;
 }
 
 * {
@@ -58,14 +62,21 @@
 .card form select {
     width: 100%;
     padding: 8px;
-    border: 1px solid var(--whiteThree);
+    border: 1px solid var(--gray);
     border-radius: 6px;
     margin-bottom: 10px;
 }
 
+.btn-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
 .save-btn {
-    background: var(--blue);
+    background: var(--teal);
     color: var(--white);
+    width: 100px;
     border: none;
     padding: 10px 15px;
     border-radius: 8px;
@@ -120,4 +131,21 @@
 .alert.success {
     background: #d4edda;
     color: #155724;
+}
+
+.searchable-select {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.searchable-select select {
+    width: 100%;
+    padding: 6px;
+}
+
+#productSearch {
+    padding: 6px;
+    border: 1px solid var(--gray);
+    border-radius: 6px;
 }

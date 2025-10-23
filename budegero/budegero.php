@@ -42,6 +42,7 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
     <title>IMS - Bodegero Dashboard</title>
     <link rel="icon" href="images/logo-teal.png" type="images/png">
     <link rel="stylesheet" href="../css/budegero.css">
+    <link rel="icon" href="../images/logo-teal.png" type="images/png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -71,9 +72,9 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
                         <!-- <span class="team-plan">Smart sales, Smart Store</span> -->
                     </div>
                 </div>
-                <button class="collapse-btn" id="collapseBtn">
+                <!-- <button class="collapse-btn" id="collapseBtn">
                     <i class="fa-solid fa-chevron-left"></i>
-                </button>
+                </button> -->
             </div>
         </div>
 

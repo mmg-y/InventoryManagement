@@ -63,14 +63,26 @@
 }
 
 .card h3 i {
-    font-size: 1.4rem;
-    color: var(--aqua);
-    /* example icon color */
+    color: var(--white);
+    background-color: var(--teal);
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 1.2rem;
+
 }
 
 .card p {
+    display: flex;
+    align-items: center;
+    gap: 8px;           
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    color: var(--darkGray);
+}
+
+.card.revenue {
     font-weight: 500;
-    font-size: 1.4rem;
+    font-size: 1rem;
 }
 
 /* Charts layout */

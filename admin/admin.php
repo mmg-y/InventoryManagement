@@ -109,9 +109,9 @@ if (!empty($_GET['page'])) {
                         <!-- <span class="team-plan">Smart sales, Smart Store</span> -->
                     </div>
                 </div>
-                <button class="collapse-btn" id="collapseBtn">
+                <!-- <button class="collapse-btn" id="collapseBtn">
                     <i class="fa-solid fa-chevron-left"></i>
-                </button>
+                </button> -->
             </div>
         </div>
 
@@ -139,7 +139,7 @@ if (!empty($_GET['page'])) {
                     </li>
 
                     <li class="<?= ($page_to_include === 'supplier') ? 'active' : '' ?>">
-                        <a href="?page=supplier" title="Add Supplier"><i class="fa-solid fa-user-plus"></i> <span>Add Supplier</span></a>
+                        <a href="?page=supplier" title="Add Supplier"><i class="fa-solid fa-user-plus"></i> <span>Supplier</span></a>
                     </li>
                     <li class="<?= ($page_to_include === 'sales_record') ? 'active' : '' ?>">
                         <a href="?page=sales_record" title="Sales Record"><i class="fa-solid fa-receipt"></i> <span>Sales Record</span></a>
