@@ -132,7 +132,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
             </tbody>
         </table>
 
-        <div class="grand-total">Grand Total: <?= $grandTotal ?></div>
+        <div class="grand-total">Grand Total: <?= "₱" . $grandTotal ?></div>
 
         <div class="pagination">
             <?php for ($i = 1; $i <= $pages; $i++): ?>
