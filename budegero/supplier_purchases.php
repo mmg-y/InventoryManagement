@@ -28,10 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_purchase'])) {
         $stmt->execute();
         $stmt->close();
 
-        header("Location: budegero.php?page=supplier_purchases&success=Purchase added successfully");
+        echo "<script>window.location.href='budegero.php?page=supplier_purchases&success=Purchase added successfully';</script>";
         exit;
     } else {
-        header("Location: budegero.php?page=supplier_purchases&error=Invalid input");
+        echo "<script>window.location.href='budegero.php?page=supplier_purchases&success=Invalid Input';</script>";
         exit;
     }
 }
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_purchase'])) {
     $stmt->execute();
     $stmt->close();
 
-    header("Location: budegero.php?page=supplier_purchases&success=Purchase updated successfully");
+    echo "<script>window.location.href='budegero.php?page=supplier_purchases&success=Purchase updated successfully';</script>";
     exit;
 }
 
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_purchase'])) {
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $conn->query("DELETE FROM product_stocks WHERE product_stock_id='$id'");
-    header("Location: budegero.php?page=supplier_purchases&success=Purchase deleted successfully");
+    echo "<script>window.location.href='budegero.php?page=supplier_purchases&success=Purchase deleted successfully';</script>";
     exit;
 }
 

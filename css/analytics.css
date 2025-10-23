@@ -57,7 +57,7 @@ h1 {
 }
 
 .cards {
-     display: flex;
+    display: flex;
     justify-content: space-between;
     align-items: stretch;
     flex-wrap: nowrap;

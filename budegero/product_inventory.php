@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
     $sql->bind_param("ssiiiii", $code, $name, $category, $retail, $quantity, $status_id, $threshold);
     $sql->execute();
 
-    header("Location: budegero.php?page=product_inventory&msg=added");
+    echo "<script>window.location.href='budegero.php?page=product_inventory&msg=added';</script>";
     exit;
 }
 
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
 if (isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
     $conn->query("DELETE FROM product WHERE product_id = $id");
-    header("Location: budegero.php?page=product_inventory&msg=deleted");
+    echo "<script>window.location.href='budegero.php?page=product_inventory&msg=deleted';</script>";
     exit;
 }
 
