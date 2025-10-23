@@ -301,7 +301,7 @@
                 JOIN supplier s ON ps.supplier_id = s.supplier_id
                 JOIN product p ON ps.product_id = p.product_id
                 LEFT JOIN category c ON p.category = c.category_id
-                WHERE ps.status IN ('ordered', 'cancelled', 'received')
+                WHERE ps.status IN ('ordered', 'cancelled', 'received', 'active', 'pulled out')
                 ORDER BY ps.updated_at DESC
             ";
 
@@ -1116,8 +1116,8 @@
             
             if($result->num_rows > 0){
                 $row = $result->fetch_assoc();
-                $totalAmountToday = $row["TotalAmount"] = null ?  $row["TotalAmount"]: 0;
-                $totalEarningToday = $row["TotalEarning"] = null ? $row["TotalEarning"] : 0;
+                $totalAmountToday = $row["TotalAmount"] = null ?  0 : $row["TotalAmount"];
+                $totalEarningToday = $row["TotalEarning"] = null ?  0 : $row["TotalEarning"];
             }
 
             $query2 = "SELECT count(*) AS TotalCount
@@ -1151,8 +1151,8 @@
             $result3 = $stmt3->get_result();
             if($result3->num_rows > 0){
                 $row3 = $result3->fetch_assoc();
-                $totalAmountWeek = $row3["TotalAmount"];
-                $totalEarningWeek = $row3["TotalEarning"];
+                $totalAmountWeek = $row3["TotalAmount"] = null ?  0 : $row3["TotalAmount"];
+                $totalEarningWeek = $row3["TotalEarning"] = null ?  0 : $row3["TotalEarning"];
                 $weekStart = $row3["WeekStart"];
                 $weekEnd = $row3["WeekEnd"];
             }
@@ -1168,15 +1168,15 @@
                         INNER JOIN sales AS s ON s.cashier_id = u.id
                         WHERE u.id = ?
                         AND MONTH(s.sale_date) = MONTH(CURDATE())
-                        AND YEAR(s.sale_date) = YEAR(CURDATE())";
+                        AND MONTH(s.sale_date) = MONTH(CURDATE())";
             $stmt4 = $this->conn->prepare($stmt4);
             $stmt4->bind_param('i', $userId);
             $stmt4->execute();
             $result4 = $stmt4->get_result();
             if($result4->num_rows > 0){
                 $row4 = $result4->fetch_assoc();
-                $totalAmountMonth = $row4["TotalAmount"] = null ? $row4["TotalAmount"] : 0;
-                $totalEarningMonth = $row4["TotalEarning"] = null ? $row4["TotalEarning"] : 0;
+                $totalAmountMonth = $row4["TotalAmount"] = null ?  0 : $row4["TotalAmount"];
+                $totalEarningMonth = $row4["TotalEarning"] = null ?  0 : $row4["TotalEarning"];
                 $monthStart = $row4["MonthStart"];
                 $monthEnd = $row4["MonthEnd"];
             }
@@ -1364,9 +1364,136 @@
             return $profile;
         }
 
-        
+        public function updateProfile($user_id, $email, $username, $telephone, $first_name, $last_name){
+            $query1 = "SELECT * FROM user
+                        WHERE id = ?";
+            $stmt1 = $this->conn->prepare($query1);
+            $stmt1->bind_param('i', $user_id);
+            $stmt1->execute();
+            $result1 = $stmt1->get_result();
+            $response = [];
+            if ($result1->num_rows > 0 && $result1->num_rows < 2) {
+                $query2 = "UPDATE `user` 
+                SET `first_name` = ?,
+                    `last_name` = ?,
+                    `contact` = ?,
+                    `email` = ?,
+                    `username` = ?
+                WHERE `user`.`id` = ? ";
+                $stmt2 = $this->conn->prepare($query2);
+                $stmt2->bind_param('sssssi', $first_name, $last_name, $telephone, $email, $username, $user_id);
+                
+                if ($stmt2->execute()) {
+                    return [
+                        "status" => "success",
+                        "message" => "Profile updated successfully."
+                    ];
+                } else {
+                    return [
+                        "status" => "error",
+                        "message" => "Failed to update profile. " . $stmt2->error
+                    ];
+                }
+            }
+            else{
+                return [
+                    "status" => "error",
+                    "message" => "User not found."
+                ];
+            }
+        }
 
 
+        public function uploadProfile($user_id, $profile_pic_path) {
+            $query = "UPDATE `user` 
+                      SET `profile_pic` = ? 
+                      WHERE `id` = ?";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bind_param('si', $profile_pic_path, $user_id);
 
+            if ($stmt->execute()) {
+                return [
+                    "status" => "success",
+                    "message" => "Profile picture updated successfully."
+                ];
+            } else {
+                return [
+                    "status" => "error",
+                    "message" => "Failed to update profile picture. " . $stmt->error
+                ];
+            }
+        }
+
+        public function searchProduct($product_name, $product_code){
+            $searchName = "%$product_name%";
+            $searchCode = "%$product_code%";
+
+            $query1 = "SELECT 
+                            p.product_id,
+                            p.product_code,
+                            p.product_name,
+                            p.product_picture,
+                            p.category,
+                            p.retail_id,
+                            p.total_quantity, 
+                            p.reserved_qty,
+                            p.threshold_id,
+                            p.threshold,
+                            p.created_at,
+                            p.updated_at,
+                            ps.cost_price,
+                            r.percent,
+                            ROUND(ps.cost_price + (ps.cost_price * (r.percent / 100)), 2) AS price
+                        FROM product p
+                        LEFT JOIN retail_variables r ON p.retail_id = r.retail_id
+                        LEFT JOIN product_stocks ps ON ps.product_id = p.product_id AND ps.status = 'active'
+                        WHERE p.product_name LIKE ? OR p.product_code LIKE ?
+                        ORDER BY p.product_name ASC
+                        LIMIT 30";
+
+            $stmt1 = $this->conn->prepare($query1);
+            $stmt1->bind_param('ss', $searchName, $searchCode);
+            $stmt1->execute();
+            $result1 = $stmt1->get_result();
+
+            $products = [];
+            if ($result1->num_rows > 0) {
+                while ($row = $result1->fetch_assoc()) {
+                    $products[] = [
+                        "productId" => $row["product_id"],
+                        "productCode" => $row["product_code"],
+                        "productName" => $row["product_name"],
+                        "productImage" => $row["product_picture"],
+                        "category" => $row["category"],
+                        "retailId" => $row["retail_id"],
+                        "totalQuantity" => $row["total_quantity"],
+                        "reservedQty" => $row["reserved_qty"],
+                        "thresholdId" => $row["threshold_id"],
+                        "threshold" => $row["threshold"],
+                        "price" => $row["price"],
+                        "createdAt" => $row["created_at"],
+                        "updatedAt" => $row["updated_at"]
+                    ];
+                }
+            } else {
+                $products[] = [
+                    "productId" => null,
+                    "productCode" => null,
+                    "productName" => null,
+                    "productImage" => null,
+                    "category" => null,
+                    "retailId" => null,
+                    "totalQuantity" => null,
+                    "reservedQty" => null,
+                    "thresholdId" => null,
+                    "threshold" => null,
+                    "price" => null,
+                    "createdAt" => null,
+                    "updatedAt" => null
+                ];
+            }
+
+            return $products;
+        }
 
     }
