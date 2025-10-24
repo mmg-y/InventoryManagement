@@ -31,7 +31,16 @@ $status = trim($data['status']);
 // Call the update function
 $success = $market->updateBatchStatus($batchId, $status);
 
-if ($success) {
+if (is_array($success) && isset($success['error'])) {
+    // 🚨 Return the actual error message to Insomnia
+    echo json_encode([
+        "status" => "error",
+        "message" => $success['message']
+    ]);
+    exit;
+}
+
+if ($success === true) {
     echo json_encode([
         "status" => "success",
         "message" => "Batch status updated successfully."
@@ -39,7 +48,7 @@ if ($success) {
 } else {
     echo json_encode([
         "status" => "error",
-        "message" => "Failed to update batch status. Check if batchId exists."
+        "message" => "Unknown error or failed transaction."
     ]);
 }
 
