@@ -181,7 +181,7 @@ $unreadCount = count(array_filter($notifications, fn($note) => !$note['read']));
                                                 unset($_SESSION['error']); ?></div>
                 <?php endif; ?>
 
-                <form action="update_profile_budegero.php" method="POST" enctype="multipart/form-data">
+                <form action="update_profile_staff.php" method="POST" enctype="multipart/form-data">
                     <div class="profile-pic-wrapper">
                         <?php
                         $modal_pic = '../uploads/default.png';

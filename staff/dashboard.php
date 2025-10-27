@@ -204,18 +204,25 @@ $columns = [
                 <input type="date" name="to" value="<?= htmlspecialchars($_GET['to'] ?? '') ?>">
                 <label>Cart #:</label>
                 <input type="text" name="cart_search" value="<?= htmlspecialchars($_GET['cart_search'] ?? '') ?>">
-                <div class="filter-group">
-                    <label>Show:</label>
-                    <select name="records" onchange="this.form.submit()">
-                        <?php foreach ([10, 20, 30, 40, 50] as $opt):
-                            $sel = ($_GET['records'] ?? 10) == $opt ? "selected" : "";
-                            echo "<option value='$opt' $sel>$opt</option>";
-                        endforeach; ?>
-                    </select>
-                    <span>records</span>
+
+                <div class="filter-actions">
+                    <div class="filter-group">
+                        <label>Show:</label>
+                        <select name="records" onchange="this.form.submit()">
+                            <?php foreach ([10, 20, 30, 40, 50] as $opt):
+                                $sel = ($_GET['records'] ?? 10) == $opt ? "selected" : "";
+                                echo "<option value='$opt' $sel>$opt</option>";
+                            endforeach; ?>
+                        </select>
+                        <span>records</span>
+                    </div>
+                    <button type="submit">
+                        <i class="fa-solid fa-filter"></i>
+                    </button>
+
                 </div>
-                <button type="submit">Filter</button>
             </form>
+
 
             <div id="billing-results">
                 <table class="billing-table">

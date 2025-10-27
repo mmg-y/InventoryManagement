@@ -18,7 +18,7 @@ $categories = $conn->query("SELECT * FROM category ORDER BY category_name ASC");
 <head>
     <meta charset="UTF-8">
     <title>IMS - Product Inventory</title>
-    <link rel="stylesheet" href="../css/product_inv.css">
+    <link rel="stylesheet" href="../css/pdct_inv.css">
     <link rel="icon" href="../images/logo-teal.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -45,7 +45,7 @@ $categories = $conn->query("SELECT * FROM category ORDER BY category_name ASC");
 </head>
 
 <body>
-    <h1 class="page-title">Products & Inventory (Staff View)</h1>
+    <h1 class="page-title">Products & Inventory</h1>
 
     <div class="actions-bar">
         <form method="GET" class="search-form">
@@ -80,13 +80,12 @@ $categories = $conn->query("SELECT * FROM category ORDER BY category_name ASC");
                     <th>Reserved</th>
                     <th>Available</th>
                     <th>Status</th>
-                    <th>Threshold</th>
                     <th>Retail Price</th>
                 </tr>
             </thead>
             <tbody id="inventory-body">
                 <tr>
-                    <td colspan="10">Loading...</td>
+                    <td colspan="9">Loading...</td>
                 </tr>
             </tbody>
         </table>
@@ -128,7 +127,6 @@ $categories = $conn->query("SELECT * FROM category ORDER BY category_name ASC");
                         <td>${row.reserved_qty}</td>
                         <td>${row.available_quantity}</td>
                         <td class="status-${statusLabel.toLowerCase().replace(/ /g,'-')}">${statusLabel}</td>
-                        <td>${row.threshold ?? '-'}</td>
                         <td>₱${parseFloat(row.retail_price).toFixed(2)}</td>
                     `;
                         tbody.appendChild(tr);

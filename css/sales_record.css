@@ -178,7 +178,7 @@ th a:hover {
 .category-filter {
     padding: 8px 30px 8px 12px;
     border-radius: 20px;
-    border: 1px solid var(--whiteThree);
+    border: 1px solid var(--silver);
     background: var(--white);
     cursor: pointer;
     font-size: 14px;
@@ -193,7 +193,7 @@ th a:hover {
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    color: var(--blue);
+    color: var(--teal);
     font-size: 14px;
 }
 

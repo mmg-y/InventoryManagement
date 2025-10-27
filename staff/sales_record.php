@@ -18,7 +18,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     $order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
     $toggle_order = $order === 'ASC' ? 'DESC' : 'ASC';
 
-    $where = "WHERE 1=1";
+    $where = "WHERE c.status != 'cancelled'";
     if ($search) {
         $safeSearch = $conn->real_escape_string($search);
         $where .= " AND c.seller LIKE '%$safeSearch%'";
@@ -103,7 +103,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
                                 $statusClass = '';
                                 if ($cart['status'] == 'completed') $statusClass = 'status-completed';
                                 if ($cart['status'] == 'pending') $statusClass = 'status-pending';
-                                if ($cart['status'] == 'cancelled') $statusClass = 'status-cancelled';
 
                                 echo "<tr>
                                     <td>{$cart['cart_id']}</td>

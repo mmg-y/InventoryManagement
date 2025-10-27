@@ -332,14 +332,26 @@ h2 {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 15px;
     flex-wrap: wrap;
     background: #f6f7fb;
     padding: 10px 15px;
     border-radius: 8px;
-    /* background: transparent;
-    box-shadow: none; */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    justify-content: flex-start;
+}
+
+.billing-filter label,
+.billing-filter span {
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .billing-filter .filter-group {
@@ -357,28 +369,45 @@ h2 {
 .billing-filter input[type="date"],
 .billing-filter input[type="text"],
 .billing-filter select {
-    padding: 6px 10px;
+    padding: 7px 12px;
+    height: 36px;
     border: 1px solid #ccc;
     border-radius: 6px;
     font-size: 14px;
-    min-width: 80px;
+    box-sizing: border-box;
     background: var(--white);
-    cursor: pointer;
 }
 
 .billing-filter button {
-    padding: 7px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
     background: var(--teal);
     color: var(--white);
     border: none;
     border-radius: 6px;
     font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.billing-filter button i {
+    font-size: 14px;
 }
 
 .billing-filter button:hover {
-    background: var(--aqua);
+    background: var(--white);
+    color: var(--smokey);
+    box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+        inset -6px -6px 12px rgba(255, 255, 255, 0.7);
+    transform: translateY(-1px);
+}
+
+.billing-filter button:active {
+    transform: translateY(0);
 }
 
 .pagination {
