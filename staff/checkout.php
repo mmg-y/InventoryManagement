@@ -3,7 +3,6 @@ session_start();
 include "../config.php";
 header('Content-Type: application/json; charset=utf-8');
 
-// For development: show PHP errors in response (remove in production)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -19,7 +18,6 @@ if (!isset($_SESSION['id']) || $_SESSION['type'] !== "cashier") {
     exit;
 }
 
-// Make mysqli throw exceptions on error
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 try {
@@ -44,22 +42,10 @@ try {
 
     $conn->begin_transaction();
 
-    // Insert sale (prepared)
-    $stmt = $conn->prepare("
-        INSERT INTO sales (total_amount, total_earning, sale_date, cashier_id, remarks)
-        VALUES (?, ?, NOW(), ?, ?)
-    ");
-
-    // We'll compute total_earning below
-    $total_earning = 0;
-
     // Fetch cart items
     $itemsRes = $conn->query("
-        SELECT ci.cart_items_id, ci.product_id, ci.qty, ci.price, ci.cost_price, ci.batch_id,
-               rv.percent AS retail_percent
+        SELECT ci.cart_items_id, ci.product_id, ci.qty, ci.price, ci.cost_price, ci.batch_id
         FROM cart_items ci
-        JOIN product p ON ci.product_id = p.product_id
-        LEFT JOIN retail_variables rv ON p.retail_id = rv.retail_id
         WHERE ci.cart_id = $cart_id
     ");
 
@@ -69,27 +55,46 @@ try {
         exit;
     }
 
-    // compute total earning using unit data (price - cost) * qty
+    // Compute total earning
+    $total_earning = 0;
     $items = [];
     while ($r = $itemsRes->fetch_assoc()) {
         $items[] = $r;
-        $unit_price = floatval($r['price']);
-        $cost_price = floatval($r['cost_price']);
-        $qty = intval($r['qty']);
+        $unit_price = floatval($r['price'] ?? 0);
+        $cost_price = floatval($r['cost_price'] ?? 0);
+        $qty = intval($r['qty'] ?? 0);
         $total_earning += ($unit_price - $cost_price) * $qty;
     }
 
     // Insert sale
-    $remarks = 'Sale completed';
-    $stmt = $conn->prepare("INSERT INTO sales (total_amount, total_earning, sale_date, cashier_id, remarks) VALUES (?, ?, NOW(), ?, ?)");
-    $stmt->bind_param("ddis", $total, $total_earning, $cashier_id, $remarks);
+    $remarks = 'Checkout completed';
+    $stmt = $conn->prepare("
+        INSERT INTO sales 
+        (total_amount, total_earning, sale_date, cashier_id, remarks, cash_received, change_amount)
+        VALUES (?, ?, NOW(), ?, ?, ?, ?)
+    ");
+    $stmt->bind_param("ddisdd", $total, $total_earning, $cashier_id, $remarks, $cash, $change);
     $stmt->execute();
     $sale_id = $stmt->insert_id;
 
-    // Insert sale items and update stock
-    $si_stmt = $conn->prepare("INSERT INTO sales_items (sale_id, product_id, batch_id, quantity, unit_price, cost_price, earning, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    $upd_stock = $conn->prepare("UPDATE product_stocks SET remaining_qty = GREATEST(remaining_qty - ?, 0), updated_at = NOW() WHERE product_stock_id = ?");
-    $upd_product = $conn->prepare("UPDATE product SET total_quantity = GREATEST(total_quantity - ?,0), reserved_qty = GREATEST(COALESCE(reserved_qty,0) - ?,0), updated_at=NOW() WHERE product_id = ?");
+    // Insert sale_items and update stock/product
+    $si_stmt = $conn->prepare("
+        INSERT INTO sales_items
+        (sale_id, product_id, batch_id, quantity, unit_price, cost_price, earning, remarks)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    $upd_stock = $conn->prepare("
+        UPDATE product_stocks 
+        SET remaining_qty = GREATEST(remaining_qty - ?, 0), updated_at = NOW()
+        WHERE product_stock_id = ?
+    ");
+    $upd_product = $conn->prepare("
+        UPDATE product 
+        SET total_quantity = GREATEST(total_quantity - ?, 0), 
+            reserved_qty = GREATEST(COALESCE(reserved_qty,0) - ?, 0), 
+            updated_at = NOW()
+        WHERE product_id = ?
+    ");
 
     foreach ($items as $it) {
         $unit_price = floatval($it['price']);
@@ -111,26 +116,34 @@ try {
         $upd_product->execute();
     }
 
-    // finalize cart
-    $stmt = $conn->prepare("UPDATE carts SET status='completed', total=?, total_earning=?, updated_at=NOW() WHERE cart_id=?");
+    // Finalize cart
+    $stmt = $conn->prepare("
+        UPDATE carts 
+        SET status='completed', total=?, total_earning=?, updated_at=NOW()
+        WHERE cart_id=?
+    ");
     $stmt->bind_param("ddi", $total, $total_earning, $cart_id);
     $stmt->execute();
 
-    // clear cart items
+    // Clear cart items
     $del = $conn->prepare("DELETE FROM cart_items WHERE cart_id = ?");
     $del->bind_param("i", $cart_id);
     $del->execute();
 
     $conn->commit();
 
-    echo json_encode(['status' => 'success', 'message' => 'Checkout completed successfully.', 'sale_id' => $sale_id, 'change' => number_format($change, 2)]);
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'Checkout completed successfully.',
+        'sale_id' => $sale_id,
+        'change' => number_format($change, 2)
+    ]);
     exit;
 } catch (Exception $ex) {
     if ($conn->errno) {
         $conn->rollback();
     }
     http_response_code(500);
-    // Return the exception message to the client for dev; remove or log in production
     echo json_encode(['status' => 'error', 'message' => 'Server error: ' . $ex->getMessage()]);
     exit;
 }

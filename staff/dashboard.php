@@ -113,6 +113,8 @@ $billing = $conn->query("
         s.sales_id,
         COUNT(*) AS total_items,
         s.total_amount AS total,
+        s.cash_received,
+        s.change_amount,
         s.sale_date AS created_at
     FROM sales s
     JOIN sales_items si ON si.sale_id = s.sales_id
@@ -121,6 +123,7 @@ $billing = $conn->query("
     ORDER BY s.sale_date DESC
     LIMIT $per_page OFFSET $offset
 ");
+
 
 $retail_percent = $conn->query("
     SELECT rv.percent
