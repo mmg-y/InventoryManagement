@@ -7,9 +7,16 @@ if (!isset($_SESSION['username']) || $_SESSION['type'] !== "cashier") {
 
 include '../config.php';
 
-$profile_src = '../uploads/default.png';
+$page_to_include = $_GET['page'] ?? 'dashboard';
+
+$default_pic = '../uploads/default.png';
+$profile_src = $default_pic;
+
 if (!empty($_SESSION['profile_pic'])) {
-    $profile_src = '../' . ltrim($_SESSION['profile_pic'], '/');
+    $custom_path = '../' . ltrim($_SESSION['profile_pic'], '/');
+    if (file_exists($custom_path)) {
+        $profile_src = $custom_path;
+    }
 }
 
 $notifications = [];
@@ -80,13 +87,13 @@ $unreadCount = count(array_filter($notifications, fn($note) => !$note['read']));
                     <li class="<?= ($page_to_include === 'dashboard') ? 'active' : '' ?>">
                         <a href="?page=dashboard" title="Dashboard"><i class="fa-solid fa-cart-plus"></i> <span>Dashboard</span></a>
                     </li>
-                    <li class="<?= ($page_to_include === 'supplier') ? 'active' : '' ?>">
+                    <li class="<?= ($page_to_include === 'analytics_report') ? 'active' : '' ?>">
                         <a href="?page=analytics_report"><i class="fa-solid fa-chart-pie"></i><span>Analytics Report</span></a>
                     </li>
-                    <li class="<?= ($page_to_include === 'sales_record') ? 'active' : '' ?>">
+                    <li class="<?= ($page_to_include === 'product_inventory') ? 'active' : '' ?>">
                         <a href="?page=product_inventory"><i class="fa-solid fa-boxes-stacked"></i> <span>Products & Inventory</span></a>
                     </li>
-                    <li class="<?= ($page_to_include === 'analytics_report') ? 'active' : '' ?>">
+                    <li class="<?= ($page_to_include === 'sales_record') ? 'active' : '' ?>">
                         <a href="?page=sales_record"><i class="fa-solid fa-clipboard"></i> <span>Sales Record</span></a>
                     </li>
                 </ul>
@@ -147,25 +154,21 @@ $unreadCount = count(array_filter($notifications, fn($note) => !$note['read']));
             </div>
         </div>
 
+
         <div class="page-content">
             <?php
-            $page_to_include = $_GET['page'] ?? 'dashboard';
+            $include_file = $page_to_include . '.php';
+            $include_path = __DIR__ . '/' . $include_file;
+
+            if (file_exists($include_path)) {
+                include $include_path;
+            } else {
+                include __DIR__ . '/dashboard.php';
+            }
             ?>
-
-            <div class="page-content">
-                <?php
-                $include_file = $page_to_include . '.php';
-                $include_path = __DIR__ . '/' . $include_file;
-
-                if (file_exists($include_path)) {
-                    include $include_path;
-                } else {
-                    include __DIR__ . '/dashboard.php';
-                }
-                ?>
-            </div>
-
         </div>
+
+
 
         <div id="profileModal" class="modal" aria-hidden="true">
             <div class="modal-content">

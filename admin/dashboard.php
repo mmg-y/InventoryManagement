@@ -162,51 +162,43 @@ if (empty($salesData)) {
 <h1 class="page-title">Admin Dashboard</h1>
 
 <div class="cards">
-    <div class="card">
-        <h3><i class="fas fa-users"></i> Total Users</h3>
-        <p><?= number_format($userCount) ?></p>
-    </div>
-    <div class="card">
-        <h3><i class="fas fa-boxes"></i> Total Products</h3>
-        <p><?= number_format($productCount) ?></p>
-    </div>
-    <div class="card">
-        <h3><i class="fas fa-shopping-cart"></i> Purchases</h3>
-        <p><?= number_format($purchaseCount) ?></p>
-    </div>
-    <div class="card">
-        <h3><i class="fas fa-coins"></i> Sales Revenue</h3>
-        <p class="revenue">₱<?= number_format($salesRevenue, 2) ?></p>
-    </div>
-    <!-- <div class="card">
-        <h3><i class="fas fa-chart-line"></i> Sales Prediction</h3>
-        <p>Revenue growth (last 7 days vs previous 7 days): <strong><?= $salesPrediction ?></strong></p>
-    </div> -->
+    <?php
+    $metrics = [
+        ['icon' => 'fa-users', 'label' => 'Total Users', 'value' => number_format($userCount), 'color' => '#102C57'],
+        ['icon' => 'fa-boxes', 'label' => 'Total Products', 'value' => number_format($productCount), 'color' => '#007BFF'],
+        ['icon' => 'fa-shopping-cart', 'label' => 'Purchases', 'value' => number_format($purchaseCount), 'color' => '#FFC107'],
+        ['icon' => 'fa-coins', 'label' => 'Sales Revenue', 'value' => '₱' . number_format($salesRevenue, 2), 'color' => '#28A745'],
+        ['icon' => 'fa-chart-line', 'label' => 'Sales Growth', 'value' => $salesPrediction, 'color' => '#DC3545']
+    ];
+
+    foreach ($metrics as $m): ?>
+        <div class="card" style="border-top:4px solid <?= $m['color'] ?>;">
+            <h3><i class="fas <?= $m['icon'] ?>"></i> <?= $m['label'] ?></h3>
+            <p class="value"><?= $m['value'] ?></p>
+        </div>
+    <?php endforeach; ?>
 </div>
 
-
 <div class="charts">
-    <!-- Top row: Sales Trend Line -->
     <div class="chart-row">
         <div class="chart-card full-width">
+            <h3>Sales Trend</h3>
             <canvas id="salesTrendChart"></canvas>
         </div>
-    </div>
 
-    <div class="chart-row">
         <div class="chart-card full-width">
+            <h3>Supplier Orders</h3>
+            <canvas id="supplierChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-row">
+        <div class="chart-card half-width">
             <h3>Weekly Sales Comparison</h3>
             <canvas id="weeklyComparisonChart"></canvas>
         </div>
-    </div>
-
-    <!-- Bottom row: Inventory Bar + Supplier Pie -->
-    <div class="chart-row">
         <div class="chart-card half-width">
+            <h3>Low Stock Products</h3>
             <canvas id="inventoryChart"></canvas>
-        </div>
-        <div class="chart-card half-width">
-            <canvas id="supplierChart"></canvas>
         </div>
     </div>
 </div>
@@ -214,114 +206,79 @@ if (empty($salesData)) {
 <div class="tables">
     <div class="table">
         <h3>Recent Purchases</h3>
-        <table>
-            <tr>
-                <th>Date</th>
-                <th>Supplier</th>
-                <th>Items</th>
-            </tr>
-            <?php while ($row = $recentPurchases->fetch_assoc()): ?>
+        <div class="table-scroll">
+            <table>
                 <tr>
-                    <td><?= htmlspecialchars($row['date']) ?></td>
-                    <td><?= htmlspecialchars($row['supplier'] ?? 'N/A') ?></td>
-                    <td><?= htmlspecialchars($row['items']) ?></td>
+                    <th>Date</th>
+                    <th>Supplier</th>
+                    <th>Items</th>
                 </tr>
-            <?php endwhile; ?>
-        </table>
+                <?php while ($row = $recentPurchases->fetch_assoc()): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($row['date']) ?></td>
+                        <td><?= htmlspecialchars($row['supplier'] ?? 'N/A') ?></td>
+                        <td><?= htmlspecialchars($row['items']) ?></td>
+                    </tr>
+                <?php endwhile; ?>
+            </table>
+        </div>
     </div>
 
     <div class="table">
         <h3>Recent Sales</h3>
-        <table>
-            <tr>
-                <th>Date</th>
-                <th>Cashier</th>
-                <th>Total</th>
-            </tr>
-            <?php while ($row = $recentSales->fetch_assoc()): ?>
+        <div class="table-scroll">
+            <table>
                 <tr>
-                    <td><?= htmlspecialchars($row['date']) ?></td>
-                    <td><?= htmlspecialchars($row['cashier'] ?? 'N/A') ?></td>
-                    <td>₱<?= number_format($row['total_amount'], 2) ?></td>
-
+                    <th>Date</th>
+                    <th>Cashier</th>
+                    <th>Total</th>
                 </tr>
-            <?php endwhile; ?>
-        </table>
+                <?php while ($row = $recentSales->fetch_assoc()): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($row['date']) ?></td>
+                        <td><?= htmlspecialchars($row['cashier'] ?? 'N/A') ?></td>
+                        <td>₱<?= number_format($row['total_amount'], 2) ?></td>
+                    </tr>
+                <?php endwhile; ?>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
+    const trendData = <?= json_encode($trendData) ?>;
+    const comparisonData = <?= json_encode($comparisonValues) ?>;
+    const comparisonLabels = <?= json_encode($comparisonLabels) ?>;
+    const inventoryData = <?= json_encode($inventoryValues) ?>;
+    const inventoryLabels = <?= json_encode($inventoryLabels) ?>;
+    const supplierData = <?= json_encode($supplierValues) ?>;
+    const supplierLabels = <?= json_encode($supplierLabels) ?>;
+
+    // Sales Trend Chart
     new Chart(document.getElementById('salesTrendChart'), {
         type: 'line',
         data: {
-            labels: <?= json_encode($trendData['labels']) ?>,
+            labels: trendData.labels,
             datasets: [{
                 label: 'Daily Sales',
-                data: <?= json_encode($trendData['values']) ?>,
-                borderColor: 'rgba(16,44,87,0.9)',
+                data: trendData.values,
+                borderColor: '#102C57',
                 backgroundColor: 'rgba(16,44,87,0.2)',
-                tension: 0.3,
-                fill: true
+                fill: true,
+                tension: 0.3
             }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
         }
     });
 
+    // Weekly Comparison
     new Chart(document.getElementById('weeklyComparisonChart'), {
         type: 'bar',
         data: {
-            labels: <?= json_encode($comparisonLabels) ?>,
+            labels: comparisonLabels,
             datasets: [{
                 label: 'Total Sales (₱)',
-                data: <?= json_encode($comparisonValues) ?>,
-                backgroundColor: [
-                    'rgba(220, 53, 69, 0.6)',
-                    'rgba(40, 167, 69, 0.6)'
-                ],
-                borderColor: [
-                    'rgba(220, 53, 69, 1)',
-                    'rgba(40, 167, 69, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Total Sales (₱)'
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    });
-
-
-    new Chart(document.getElementById('inventoryChart'), {
-        type: 'bar',
-        data: {
-            labels: <?= json_encode($inventoryLabels) ?>,
-            datasets: [{
-                label: 'Stock Quantity',
-                data: <?= json_encode($inventoryValues) ?>,
-                backgroundColor: 'rgba(255,99,132,0.6)'
+                data: comparisonData,
+                backgroundColor: ['#DC3545', '#28A745']
             }]
         },
         options: {
@@ -335,13 +292,36 @@ if (empty($salesData)) {
         }
     });
 
+    // Inventory Chart
+    new Chart(document.getElementById('inventoryChart'), {
+        type: 'bar',
+        data: {
+            labels: inventoryLabels,
+            datasets: [{
+                label: 'Stock Quantity',
+                data: inventoryData,
+                backgroundColor: inventoryData.map(v => v < 5 ? '#DC3545' : '#FFC107')
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Supplier Chart
     new Chart(document.getElementById('supplierChart'), {
         type: 'pie',
         data: {
-            labels: <?= json_encode($supplierLabels) ?>,
+            labels: supplierLabels,
             datasets: [{
                 label: 'Supplier Orders',
-                data: <?= json_encode($supplierValues) ?>,
+                data: supplierData,
                 backgroundColor: ['#102C57', '#007BFF', '#28A745', '#FFC107', '#DC3545']
             }]
         },

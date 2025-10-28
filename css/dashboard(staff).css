@@ -53,11 +53,19 @@ h2 {
 }
 
 .dashboard {
+    position: fixed;
+    top: 100px;
+    left: 330px;
+    right: 55px;
+    bottom: 20px;
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 20px;
-    height: calc(100vh - 80px);
+    height: auto;
     align-items: stretch;
+    background: transparent;
+    overflow-y: auto;
+    transition: left 0.3s ease, right 0.3s ease;
 }
 
 .dashboard-left {
@@ -245,6 +253,80 @@ h2 {
     opacity: .85;
 }
 
+.cash-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 10px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.cash-label {
+    white-space: nowrap;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--black);
+}
+
+.cash-input-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+.cash-input-wrapper::before {
+    content: "₱";
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    color: #555;
+    font-weight: 500;
+}
+
+.cash-input {
+    width: 100%;
+    padding: 12px 12px 12px 28px;
+    border: 1px solid var(--platinum);
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: var(--white);
+    color: var(--black);
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.cash-input:hover {
+    border-color: #b0b0b0;
+}
+
+.cash-input:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 4px rgba(74, 144, 226, 0.4);
+}
+
+.cash-input::placeholder {
+    color: #aaa;
+    font-style: italic;
+}
+
+.change-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: var(--black);
+    font-weight: 500;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.change-amount {
+    color: #2e8b57;
+    font-weight: 600;
+    font-size: 20px;
+}
+
 .totals {
     border-top: 1px solid var(--silver);
     background-color: var(--silver);
@@ -303,10 +385,41 @@ h2 {
 
 .billing-table th,
 .billing-table td {
-    padding: 12px;
+    padding: 9px;
     text-align: left;
     border-bottom: 1px solid var(--silver);
     font-size: 14px;
+}
+
+.view-receipt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--teal);
+    color: var(--white);
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    border: 1px solid transparent;
+}
+
+.view-receipt i {
+    font-size: 15px;
+}
+
+.view-receipt:hover {
+    background: var(--white);
+    color: var(--teal, #14b8a6);
+    border: 1px solid var(--teal, #14b8a6);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.no-receipt {
+    color: #aaa;
+    font-style: italic;
 }
 
 .billing-table th {
@@ -332,12 +445,15 @@ h2 {
     display: flex;
     align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* ⬅ keep everything on one row */
+    overflow-x: auto;  /* ⬅ allow horizontal scroll on smaller screens */
     background: #f6f7fb;
     padding: 10px 15px;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     justify-content: flex-start;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
 .billing-filter label,

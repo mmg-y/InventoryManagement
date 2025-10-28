@@ -54,35 +54,33 @@
 
 .card h3 {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
-    font-size: 1.1rem;
-    margin-bottom: 8px;
-    color: var(--smokey);
+    color: var(--teal);
+    font-size: 15px;
     font-weight: 600;
 }
 
 .card h3 i {
-    color: var(--white);
-    background-color: var(--teal);
-    padding: 10px;
-    border-radius: 10px;
-    font-size: 1.2rem;
-
+    font-size: 1.3rem;
+    color: var(--teal);
 }
 
 .card p {
-    display: flex;
-    align-items: center;
-    gap: 8px;           
-    font-size: 1.1rem;
-    margin-bottom: 12px;
-    color: var(--darkGray);
+    margin-top: 8px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #222;
 }
 
 .card.revenue {
     font-weight: 500;
     font-size: 1rem;
+}
+
+.card.value {
+    font-size: 1.6rem;
+    font-weight: 600;
 }
 
 /* Charts layout */
@@ -104,10 +102,11 @@
     padding: 15px;
     border-radius: 10px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    height: 300px;
+    height: 330px;
     flex: 1;
     min-width: 200px;
 }
+
 
 /* Tables layout */
 .tables {

@@ -124,35 +124,23 @@ $daysJSON = json_encode($days);
 <div class="dashboard">
 
     <div class="metrics">
-        <div class="card">
-            <div class="icon-label">
-                <i class="fas fa-coins"></i>
-                <div class="label">Total Revenue</div>
+        <?php
+        $staffMetrics = [
+            ['icon' => 'fa-coins', 'label' => 'Total Revenue', 'value' => '₱' . number_format($totalRevenue, 2), 'color' => '#28A745'],
+            ['icon' => 'fa-dollar-sign', 'label' => 'Daily Sales', 'value' => '₱' . number_format($dailyRevenue, 2), 'color' => '#007BFF'],
+            ['icon' => 'fa-shopping-cart', 'label' => 'Orders Processed', 'value' => $ordersProcessed, 'color' => '#FFC107'],
+            ['icon' => 'fa-boxes', 'label' => 'Low Stock Items', 'value' => $lowStock, 'color' => '#DC3545'],
+        ];
+
+        foreach ($staffMetrics as $m):
+        ?>
+            <div class="card" style="border-top:4px solid <?= $m['color'] ?>;">
+                <h3><i class="fas <?= $m['icon'] ?>"></i> <?= $m['label'] ?></h3>
+                <p class="value"><?= $m['value'] ?></p>
             </div>
-            <div class="value">₱<?= number_format($totalRevenue, 2) ?></div>
-        </div>
-        <div class="card">
-            <div class="icon-label">
-                <i class="fas fa-dollar-sign"></i>
-                <div class="label">Daily Sales</div>
-            </div>
-            <div class="value">₱<?= number_format($dailyRevenue, 2) ?></div>
-        </div>
-        <div class="card">
-            <div class="icon-label">
-                <i class="fas fa-shopping-cart"></i>
-                <div class="label">Orders Processed</div>
-            </div>
-            <div class="value"><?= $ordersProcessed ?></div>
-        </div>
-        <div class="card">
-            <div class="icon-label">
-                <i class="fas fa-boxes"></i>
-                <div class="label">Low Stock Items</div>
-            </div>
-            <div class="value"><?= $lowStock ?></div>
-        </div>
+        <?php endforeach; ?>
     </div>
+
 
     <div class="row">
         <div class="col">
@@ -168,8 +156,7 @@ $daysJSON = json_encode($days);
                 </h3>
                 <?php while ($p = $topProducts->fetch_assoc()): ?>
                     <div class="product">
-                        <img src="../<?= $p['product_picture'] ?>" alt="<?= $p['product_name'] ?>">
-
+                        <img src="../images/<?= $p['product_picture'] ?>" alt="<?= $p['product_name'] ?>">
                         <div class="info">
                             <div class="name"><?= $p['product_name'] ?></div>
                             <div class="details"><?= $p['units_sold'] ?> units | ₱<?= number_format($p['revenue'], 2) ?></div>
@@ -194,15 +181,15 @@ $daysJSON = json_encode($days);
                 <h3>Employees</h3>
                 <?php while ($e = $employees->fetch_assoc()): ?>
                     <div class="employee">
-                        <img src="../uploads/<?= $e['profile_pic'] ?: 'default.png' ?>" alt="">
+                        <img src="../images/<?= $e['profile_pic'] ?: 'default.png' ?>" alt="<?= $e['first_name'] ?>">
                         <div class="info">
                             <div class="name"><?= $e['first_name'] . " " . $e['last_name'] ?></div>
                             <div class="role"><?= ucfirst($e['type']) ?></div>
                         </div>
                     </div>
                 <?php endwhile; ?>
-
             </div>
+
         </div>
     </div>
 </div>

@@ -1,85 +1,136 @@
 <?php
 session_start();
 include "../config.php";
+header('Content-Type: application/json; charset=utf-8');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!isset($_SESSION['id']) || $_SESSION['type'] !== "cashier") {
-        header("Location: ../index.php");
+// For development: show PHP errors in response (remove in production)
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request method.']);
+    exit;
+}
+
+if (!isset($_SESSION['id']) || $_SESSION['type'] !== "cashier") {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'Unauthorized access.']);
+    exit;
+}
+
+// Make mysqli throw exceptions on error
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+try {
+    $cashier_id = intval($_SESSION['id']);
+    $cart_id = intval($_POST['cart_id'] ?? 0);
+    $total = floatval($_POST['total'] ?? 0);
+    $cash = floatval($_POST['cash'] ?? 0);
+
+    if (!$cart_id || $total <= 0) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Missing required fields.']);
         exit;
     }
 
-    $cashier_id = intval($_SESSION['id']);
-    $cart_id = intval($_POST['cart_id']);
-    $total = floatval($_POST['total']);
+    if ($cash < $total) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Insufficient cash received.']);
+        exit;
+    }
 
-    $cart_items = $conn->query("
-        SELECT ci.cart_items_id, ci.product_id, ci.qty,
-               ps.product_stock_id AS batch_id, ps.cost_price,
+    $change = round($cash - $total, 2);
+
+    $conn->begin_transaction();
+
+    // Insert sale (prepared)
+    $stmt = $conn->prepare("
+        INSERT INTO sales (total_amount, total_earning, sale_date, cashier_id, remarks)
+        VALUES (?, ?, NOW(), ?, ?)
+    ");
+
+    // We'll compute total_earning below
+    $total_earning = 0;
+
+    // Fetch cart items
+    $itemsRes = $conn->query("
+        SELECT ci.cart_items_id, ci.product_id, ci.qty, ci.price, ci.cost_price, ci.batch_id,
                rv.percent AS retail_percent
         FROM cart_items ci
         JOIN product p ON ci.product_id = p.product_id
-        LEFT JOIN product_stocks ps ON ci.batch_id = ps.product_stock_id
         LEFT JOIN retail_variables rv ON p.retail_id = rv.retail_id
         WHERE ci.cart_id = $cart_id
     ");
 
-    if ($cart_items->num_rows === 0) {
-        $_SESSION['error'] = "Cart is empty.";
-        header("Location: staff.php?page=dashboard");
+    if (!$itemsRes || $itemsRes->num_rows === 0) {
+        $conn->rollback();
+        echo json_encode(['status' => 'error', 'message' => 'Cart is empty.']);
         exit;
     }
 
-    $total_earning = 0;
-    while ($item = $cart_items->fetch_assoc()) {
-        $price = $item['cost_price'] * (1 + ($item['retail_percent'] / 100));
-        $total_earning += ($price - $item['cost_price']) * $item['qty'];
+    // compute total earning using unit data (price - cost) * qty
+    $items = [];
+    while ($r = $itemsRes->fetch_assoc()) {
+        $items[] = $r;
+        $unit_price = floatval($r['price']);
+        $cost_price = floatval($r['cost_price']);
+        $qty = intval($r['qty']);
+        $total_earning += ($unit_price - $cost_price) * $qty;
     }
 
-    $conn->query("
-        INSERT INTO sales (total_amount, total_earning, sale_date, cashier_id, remarks)
-        VALUES ($total, $total_earning, NOW(), $cashier_id, 'Sale completed')
-    ");
-    $sale_id = $conn->insert_id;
+    // Insert sale
+    $remarks = 'Sale completed';
+    $stmt = $conn->prepare("INSERT INTO sales (total_amount, total_earning, sale_date, cashier_id, remarks) VALUES (?, ?, NOW(), ?, ?)");
+    $stmt->bind_param("ddis", $total, $total_earning, $cashier_id, $remarks);
+    $stmt->execute();
+    $sale_id = $stmt->insert_id;
 
-    $cart_items->data_seek(0);
-    while ($item = $cart_items->fetch_assoc()) {
-        $price = $item['cost_price'] * (1 + ($item['retail_percent'] / 100));
-        $earning = ($price - $item['cost_price']) * $item['qty'];
-        $batch_id = $item['batch_id'] ?? 'NULL';
+    // Insert sale items and update stock
+    $si_stmt = $conn->prepare("INSERT INTO sales_items (sale_id, product_id, batch_id, quantity, unit_price, cost_price, earning, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $upd_stock = $conn->prepare("UPDATE product_stocks SET remaining_qty = GREATEST(remaining_qty - ?, 0), updated_at = NOW() WHERE product_stock_id = ?");
+    $upd_product = $conn->prepare("UPDATE product SET total_quantity = GREATEST(total_quantity - ?,0), reserved_qty = GREATEST(COALESCE(reserved_qty,0) - ?,0), updated_at=NOW() WHERE product_id = ?");
 
-        $conn->query("
-            INSERT INTO sales_item (sale_id, product_id, batch_id, quantity, unit_price, cost_price, earning, remarks)
-            VALUES ($sale_id, {$item['product_id']}, $batch_id, {$item['qty']}, $price, {$item['cost_price']}, $earning, 'Sold item')
-        ");
+    foreach ($items as $it) {
+        $unit_price = floatval($it['price']);
+        $cost_price = floatval($it['cost_price']);
+        $qty = intval($it['qty']);
+        $earning = ($unit_price - $cost_price) * $qty;
+        $batch_id = $it['batch_id'] !== null ? intval($it['batch_id']) : null;
+        $rem = 'Sold item';
 
-        if (!empty($item['batch_id'])) {
-            $conn->query("
-                UPDATE product_stocks
-                SET remaining_qty = GREATEST(remaining_qty - {$item['qty']}, 0),
-                    updated_at = NOW()
-                WHERE product_stock_id = {$item['batch_id']}
-            ");
+        $si_stmt->bind_param("iiiiddds", $sale_id, $it['product_id'], $batch_id, $qty, $unit_price, $cost_price, $earning, $rem);
+        $si_stmt->execute();
+
+        if ($batch_id) {
+            $upd_stock->bind_param("ii", $qty, $batch_id);
+            $upd_stock->execute();
         }
 
-        $conn->query("
-            UPDATE product
-            SET total_quantity = GREATEST(total_quantity - {$item['qty']},0),
-                reserved_qty = GREATEST(COALESCE(reserved_qty,0) - {$item['qty']},0),
-                updated_at = NOW()
-            WHERE product_id = {$item['product_id']}
-        ");
+        $upd_product->bind_param("iii", $qty, $qty, $it['product_id']);
+        $upd_product->execute();
     }
 
-    $conn->query("
-        UPDATE carts
-        SET status='completed', total=$total, total_earning=$total_earning, updated_at=NOW()
-        WHERE cart_id=$cart_id
-    ");
+    // finalize cart
+    $stmt = $conn->prepare("UPDATE carts SET status='completed', total=?, total_earning=?, updated_at=NOW() WHERE cart_id=?");
+    $stmt->bind_param("ddi", $total, $total_earning, $cart_id);
+    $stmt->execute();
 
-    $conn->query("DELETE FROM cart_items WHERE cart_id=$cart_id");
+    // clear cart items
+    $del = $conn->prepare("DELETE FROM cart_items WHERE cart_id = ?");
+    $del->bind_param("i", $cart_id);
+    $del->execute();
 
-    $_SESSION['success'] = "Checkout completed!";
+    $conn->commit();
+
+    echo json_encode(['status' => 'success', 'message' => 'Checkout completed successfully.', 'sale_id' => $sale_id, 'change' => number_format($change, 2)]);
+    exit;
+} catch (Exception $ex) {
+    if ($conn->errno) {
+        $conn->rollback();
+    }
+    http_response_code(500);
+    // Return the exception message to the client for dev; remove or log in production
+    echo json_encode(['status' => 'error', 'message' => 'Server error: ' . $ex->getMessage()]);
+    exit;
 }
-
-header("Location: staff.php?page=dashboard");
-exit;

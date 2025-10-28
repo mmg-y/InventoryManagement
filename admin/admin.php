@@ -16,9 +16,14 @@ if (!isset($conn) || !$conn) {
     die("Database connection not available.");
 }
 
-$profile_src = '../uploads/default.png';
+$default_pic = '../uploads/default.png';
+$profile_src = $default_pic;
+
 if (!empty($_SESSION['profile_pic'])) {
-    $profile_src = '../' . ltrim($_SESSION['profile_pic'], '/');
+    $custom_path = '../' . ltrim($_SESSION['profile_pic'], '/');
+    if (file_exists($custom_path)) {
+        $profile_src = $custom_path;
+    }
 }
 
 $notifications = [];
@@ -398,7 +403,6 @@ if (!empty($_GET['page'])) {
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            // === NOTIFICATION DROPDOWN ===
             const notifBtn = document.getElementById("notifBtn");
             const notifWrapper = document.getElementById("notifWrapper");
 

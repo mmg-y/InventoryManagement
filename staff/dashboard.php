@@ -95,7 +95,7 @@ $sort_dir = strtoupper($_GET['dir'] ?? "DESC");
 if (!in_array($sort_col, $valid_sort_columns)) $sort_col = "c.created_at";
 $sort_dir = $sort_dir === "ASC" ? "ASC" : "DESC";
 
-$per_page = isset($_GET['records']) ? max(5, intval($_GET['records'])) : 10;
+$per_page = isset($_GET['records']) ? max(5, intval($_GET['records'])) : 5;
 $page_num = max(1, intval($_GET['bpage'] ?? 1));
 $offset = ($page_num - 1) * $per_page;
 
@@ -110,18 +110,17 @@ $total_billing_pages = ceil($total_billing_rows / $per_page);
 
 $billing = $conn->query("
     SELECT 
-        c.cart_id, 
-        c.total, 
-        c.created_at, 
-        COUNT(ci.cart_items_id) AS total_items
-    FROM carts c
-    JOIN cart_items ci ON ci.cart_id = c.cart_id
-    $where_billing_sql
-    GROUP BY c.cart_id
-    ORDER BY $sort_col $sort_dir
+        s.sales_id,
+        COUNT(*) AS total_items,
+        s.total_amount AS total,
+        s.sale_date AS created_at
+    FROM sales s
+    JOIN sales_items si ON si.sale_id = s.sales_id
+    WHERE s.cashier_id = '$cashier_id'
+    GROUP BY s.sales_id
+    ORDER BY s.sale_date DESC
     LIMIT $per_page OFFSET $offset
 ");
-
 
 $retail_percent = $conn->query("
     SELECT rv.percent
@@ -143,7 +142,31 @@ $columns = [
 
 
 <link rel="stylesheet" href="../css/dashboard(staff).css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<?php if (isset($_GET['receipt_id'])): ?>
+    <script>
+        window.addEventListener("DOMContentLoaded", () => {
+            Toastify({
+                text: "Purchase complete!",
+                duration: 5000,
+                gravity: "top",
+                position: "right",
+                close: true,
+                stopOnFocus: true,
+                backgroundColor: "#22c55e",
+                onClick: function() {
+                    window.open("../fpdf/receipt/receipt.php?sale_id=<?= intval($_GET['receipt_id']) ?>", "_blank");
+                }
+            }).showToast();
+        });
+    </script>
+<?php endif; ?>
+
+
 
 <div class="dashboard">
     <div class="dashboard-left">
@@ -173,7 +196,7 @@ $columns = [
                 ?>
                     <div class="product-card" data-category="<?= $p['category'] ?>">
                         <?php if ($picture && file_exists("../uploads/$picture")): ?>
-                            <img src="../uploads/<?= $picture ?>" alt="<?= htmlspecialchars($p['product_name']) ?>">
+                            <img src="../images/<?= $picture ?>" alt="<?= htmlspecialchars($p['product_name']) ?>">
                         <?php else: ?>
                             <div class="no-image">No Image</div>
                         <?php endif; ?>
@@ -209,11 +232,12 @@ $columns = [
                     <div class="filter-group">
                         <label>Show:</label>
                         <select name="records" onchange="this.form.submit()">
-                            <?php foreach ([10, 20, 30, 40, 50] as $opt):
-                                $sel = ($_GET['records'] ?? 10) == $opt ? "selected" : "";
+                            <?php foreach ([5, 10, 20, 30, 40, 50] as $opt):
+                                $sel = ($_GET['records'] ?? 5) == $opt ? "selected" : "";
                                 echo "<option value='$opt' $sel>$opt</option>";
                             endforeach; ?>
                         </select>
+
                         <span>records</span>
                     </div>
                     <button type="submit">
@@ -233,25 +257,34 @@ $columns = [
                                 $new_dir = ($sort_col === $col && $sort_dir === 'ASC') ? 'DESC' : 'ASC';
                             ?>
                                 <th>
-                                    <a href="#" class="sort" data-col="<?= $col ?>" data-dir="<?= $new_dir ?>">
-                                        <?= $label ?> <?= $indicator ?>
+                                    <a href="#" class="sort" data-col="<?= htmlspecialchars($col) ?>" data-dir="<?= htmlspecialchars($new_dir) ?>">
+                                        <?= htmlspecialchars($label) ?> <?= $indicator ?>
                                     </a>
                                 </th>
                             <?php endforeach; ?>
+                            <th>Receipt</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php while ($b = $billing->fetch_assoc()): ?>
                             <tr>
-                                <td>#<?= $b['cart_id'] ?></td>
-                                <td><?= $b['total_items'] ?></td>
+                                <td>#<?= htmlspecialchars($b['sales_id']) ?></td>
+                                <td><?= htmlspecialchars($b['total_items']) ?></td>
                                 <td>₱<?= number_format($b['total'], 2) ?></td>
                                 <td><?= date("M d, Y h:i A", strtotime($b['created_at'])) ?></td>
+                                <td>
+                                    <a href="../fpdf/receipt/receipt.php?sale_id=<?= $b['sales_id'] ?>" target="_blank"
+                                        class="view-receipt">
+                                        <i class="fa-solid fa-receipt"></i> View
+                                    </a>
+                                </td>
                             </tr>
                         <?php endwhile; ?>
                     </tbody>
                 </table>
             </div>
+
+
         </div>
     </div>
 
@@ -299,11 +332,37 @@ $columns = [
         </div>
 
 
-        <form method="post" action="checkout.php">
+        <form id="checkout-form">
             <input type="hidden" name="cart_id" value="<?= $cart_id ?>">
-            <input type="hidden" name="total" value="<?= $subtotal ?>">
-            <button class="checkout-btn">Complete Purchase</button>
+            <input type="hidden" name="total" id="total" value="<?= $subtotal ?>">
+
+            <div class="cash-section">
+                <div class="cash-group">
+                    <label class="cash-label" for="cash">Cash Received:</label>
+                    <div class="cash-input-wrapper">
+                        <!-- NOTE: name="cash" is required so POST includes it -->
+                        <input
+                            type="number"
+                            name="cash"
+                            id="cash"
+                            class="cash-input"
+                            placeholder="Enter amount received"
+                            min="0"
+                            step="0.01"
+                            required>
+                    </div>
+                </div>
+
+                <div class="change-display">
+                    <span>Change:</span>
+                    <span id="change" class="change-amount">₱0.00</span>
+                </div>
+            </div>
+
+            <button type="submit" class="checkout-btn">Complete Purchase</button>
         </form>
+
+
     </div>
 </div>
 
@@ -346,5 +405,137 @@ $columns = [
             }, 'json');
         }
 
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        $("#checkout-form").on("submit", function(e) {
+            e.preventDefault();
+
+            $.ajax({
+                url: "checkout.php",
+                type: "POST",
+                data: $(this).serialize(),
+                dataType: "json",
+                success: function(response) {
+                    if (response.status === "success") {
+                        Toastify({
+                            text: "Purchase completed successfully!",
+                            duration: 3000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "#22c55e",
+                            close: true,
+                            stopOnFocus: true
+                        }).showToast();
+
+                        // Open receipt
+                        window.open("../fpdf/receipt/receipt.php?sale_id=" + response.sale_id, "_blank");
+
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        Toastify({
+                            text: "⚠️ " + response.message,
+                            duration: 3000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "#facc15",
+                            close: true,
+                            stopOnFocus: true
+                        }).showToast();
+                    }
+                },
+                error: function() {
+                    Toastify({
+                        text: " Something went wrong. Please try again.",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "#ef4444",
+                        close: true,
+                        stopOnFocus: true
+                    }).showToast();
+                }
+            });
+        });
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        // live update change and keep formatted display
+        const cashInput = document.getElementById("cash");
+        const totalVal = parseFloat(document.getElementById("total").value) || 0;
+        const changeSpan = document.getElementById("change");
+
+        cashInput.addEventListener("input", () => {
+            const cash = parseFloat(cashInput.value) || 0;
+            const change = cash - totalVal;
+            changeSpan.textContent = (change >= 0) ? `₱${change.toFixed(2)}` : "₱0.00";
+        });
+
+        $("#checkout-form").on("submit", function(e) {
+            e.preventDefault();
+
+            // serialize form (includes name="cash")
+            const data = $(this).serialize();
+
+            $.ajax({
+                url: "checkout.php",
+                type: "POST",
+                data: data,
+                dataType: "json", // expect JSON
+                success: function(response) {
+                    if (response.status === "success") {
+                        Toastify({
+                            text: "✅ Purchase completed successfully!",
+                            duration: 3000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "#22c55e",
+                            close: true,
+                            stopOnFocus: true
+                        }).showToast();
+
+                        // Open receipt
+                        window.open("../fpdf/receipt/receipt.php?sale_id=" + response.sale_id, "_blank");
+
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        Toastify({
+                            text: "⚠️ " + (response.message || "Checkout failed."),
+                            duration: 4000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "#facc15",
+                            close: true
+                        }).showToast();
+                    }
+                },
+                error: function(xhr, status, err) {
+                    // show toast and print full server response to console for debugging
+                    let body = xhr.responseText || "";
+                    Toastify({
+                        text: "❌ Server error. Check console (F12) for details.",
+                        duration: 6000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "#ef4444",
+                        close: true
+                    }).showToast();
+
+                    console.error("AJAX ERROR:", status, err);
+                    console.log("Response body:", body);
+                    // try to parse JSON error if server returned JSON
+                    try {
+                        const json = JSON.parse(body);
+                        console.info("Server JSON response:", json);
+                    } catch (e) {
+                        // not JSON — it's probably a PHP error/stack trace
+                    }
+                }
+            });
+        });
     });
 </script>

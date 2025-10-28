@@ -67,6 +67,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     }
 ?>
 
+    <link rel="stylesheet" href="../css/sales_record.css">
+
     <div class="table-container">
         <table>
             <thead>

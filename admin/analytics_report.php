@@ -152,44 +152,44 @@ if (empty($supplierLabels)) {
     <h1>Analytics Dashboard</h1>
 
     <div class="cards">
-        <div class="card">
-            <h3><i class="fas fa-coins"></i> Total Sales</h3>
-            <p>₱<?= number_format($totalSales, 2) ?></p>
-        </div>
-        <div class="card">
-            <h3><i class="fas fa-box-open"></i> Best Product</h3>
-            <p><?= $bestProduct['product_name'] ?? 'N/A' ?> (<?= $bestProduct['total_qty'] ?? 0 ?> sold)</p>
-        </div>
-        <div class="card">
-            <h3><i class="fas fa-exclamation-triangle"></i> Low Stock Items</h3>
-            <p><?= $lowStock ?></p>
-        </div>
-        <div class="card">
-            <h3><i class="fas fa-warehouse"></i> Inventory Value</h3>
-            <p>₱<?= number_format($totalInventoryValue, 2) ?></p>
-        </div>
-        <div class="card">
-            <h3><i class="fas fa-hourglass-half"></i> Pending Purchases</h3>
-            <p><?= $pendingPurchases ?></p>
-        </div>
-        <div class="card">
-            <h3><i class="fas fa-truck"></i> Top Supplier</h3>
-            <p><?= $topSupplier['name'] ?? 'N/A' ?> (<?= $topSupplier['orders'] ?? 0 ?> orders)</p>
-        </div>
-    </div>
+        <?php
+        $analyticsMetrics = [
+            ['icon' => 'fa-coins', 'label' => 'Total Sales', 'value' => '₱' . number_format($totalSales, 2), 'color' => '#28A745'],
+            ['icon' => 'fa-box-open', 'label' => 'Best Product', 'value' => $bestProduct['product_name'] . ' (' . $bestProduct['total_qty'] . ' sold)', 'color' => '#007BFF'],
+            ['icon' => 'fa-exclamation-triangle', 'label' => 'Low Stock Items', 'value' => $lowStock, 'color' => '#DC3545'],
+            ['icon' => 'fa-warehouse', 'label' => 'Inventory Value', 'value' => '₱' . number_format($totalInventoryValue, 2), 'color' => '#FFC107'],
+            ['icon' => 'fa-hourglass-half', 'label' => 'Pending Purchases', 'value' => $pendingPurchases, 'color' => '#6C757D'],
+            ['icon' => 'fa-truck', 'label' => 'Top Supplier', 'value' => $topSupplier['name'] . ' (' . $topSupplier['orders'] . ' orders)', 'color' => '#102C57']
+        ];
 
+        foreach ($analyticsMetrics as $m):
+        ?>
+            <div class="card" style="border-top: 4px solid <?= $m['color'] ?>;">
+                <h3><i class="fas <?= $m['icon'] ?>"></i> <?= $m['label'] ?></h3>
+                <p class="value"><?= $m['value'] ?></p>
+            </div>
+        <?php endforeach; ?>
+    </div>
 
     <div class="charts">
-        <div class="chart-card" id="lineChart">
-            <canvas id="salesTrendChart"></canvas>
+        <div class="chart-row">
+            <div class="chart-card full-width">
+                <h3>Daily Sales Trend</h3>
+                <canvas id="salesTrendChart"></canvas>
+            </div>
         </div>
-        <div class="chart-card" id="barChart">
-            <canvas id="topProductsChart"></canvas>
-        </div>
-        <div class="chart-card" id="pieChart">
-            <canvas id="supplierChart"></canvas>
+        <div class="chart-row">
+            <div class="chart-card half-width">
+                <h3>Top 5 Products Sold</h3>
+                <canvas id="topProductsChart"></canvas>
+            </div>
+            <div class="chart-card half-width">
+                <h3>Purchases by Supplier</h3>
+                <canvas id="supplierChart"></canvas>
+            </div>
         </div>
     </div>
+
 
 </div>
 
