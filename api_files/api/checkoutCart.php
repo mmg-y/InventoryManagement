@@ -20,6 +20,8 @@ if (
     empty($data->cashier_id) ||
     empty($data->total_amount) ||
     empty($data->total_earning) ||
+    empty($data->total_cash_receive) ||
+    empty($data->total_change) ||
     empty($data->items)
 ) {
     echo json_encode(['status' => 'error', 'message' => 'Missing required fields']);
@@ -30,10 +32,12 @@ if (
 $userId       = htmlspecialchars(strip_tags($data->cashier_id));
 $totalAmount  = htmlspecialchars(strip_tags($data->total_amount));
 $totalEarning = htmlspecialchars(strip_tags($data->total_earning));
+$totalCashReceive = htmlspecialchars(strip_tags($data->total_cash_receive));
+$totalChange = htmlspecialchars(strip_tags($data->total_change));
 $items        = $data->items;
 
 // Call the proper method
-$response = $sm->checkoutCart($userId, $totalAmount, $totalEarning, $items);
+$response = $sm->checkoutCart($userId, $totalAmount, $totalEarning, $items, $totalCashReceive, $totalChange);
 
 // Return JSON response
 echo json_encode($response);

@@ -1034,7 +1034,7 @@
 
 
 
-        public function checkoutCart($userId, $totalAmount, $totalEarning, $items) {
+        public function checkoutCart($userId, $totalAmount, $totalEarning, $items, $totalCashReceive, $totalChange) {
             try {
                 if (empty($userId) || empty($items)) {
                     throw new Exception("Missing required checkout data.");
@@ -1044,11 +1044,11 @@
 
                 //Insert new record in `sales`
                 $querySales = "
-                    INSERT INTO sales (total_amount, total_earning, sale_date, cashier_id, remarks)
-                    VALUES (?, ?, NOW(), ?, 'Checkout completed')
+                    INSERT INTO sales (total_amount, total_earning, sale_date, cashier_id, remarks, cash_received, change_amount)
+                    VALUES (?, ?, NOW(), ?, 'Checkout completed', ?, ?)
                 ";
                 $stmtSales = $this->conn->prepare($querySales);
-                $stmtSales->bind_param('ddi', $totalAmount, $totalEarning, $userId);
+                $stmtSales->bind_param('ddidd', $totalAmount, $totalEarning, $userId, $totalCashReceive, $totalChange);
 
                 if (!$stmtSales->execute()) {
                     throw new Exception("Failed to create sale: " . $stmtSales->error);
