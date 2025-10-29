@@ -165,8 +165,12 @@
 }
 
 .table th {
-    background: var(--whiteOne);
+    background: #e0f2fe;
+    color: var(--darkGray);
+    padding: 12px;
+    text-align: left;
     font-weight: 600;
+    letter-spacing: 0.3px;
 }
 
 /* Alerts */
@@ -197,4 +201,119 @@
     padding: 6px;
     border: 1px solid var(--gray);
     border-radius: 6px;
+}
+
+.modal-supply {
+    display: none;          
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center; 
+    align-items: center;
+    padding: 20px;
+    flex-direction: column;
+}
+
+.modal-content-supply {
+    background-color: var(--white);
+    border-radius: 12px;
+    padding: 25px;
+    width: 100%;
+    max-width: 550px;
+    position: relative;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--darkGray);
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.close-btn:hover {
+    color: #e74c3c;
+}
+
+.modal-content-supply label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 5px;
+    margin-top: 15px;
+    color: var(--darkGray);
+}
+
+.modal-content-supply input,
+.modal-content-supply select {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 5px;
+    border-radius: 8px;
+    border: 1px solid var(--gray);
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s;
+}
+
+.modal-content-supply input:focus,
+.modal-content-supply select:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 5px rgba(8, 131, 149, 0.4);
+}
+
+.modal-content-supply .btn-container {
+    margin-top: 20px;
+    text-align: right;
+}
+
+.save-btn {
+    background-color: var(--teal);
+    color: var(--white);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.save-btn:hover {
+    background-color: #088395;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.edit-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background-color: var(--teal);
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    transition: 0.2s;
+}
+
+.edit-btn:hover {
+    background-color: #2980b9;
 }

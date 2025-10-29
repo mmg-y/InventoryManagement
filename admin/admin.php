@@ -77,7 +77,9 @@ $allowed_pages = [
     'sales_record',
     'analytics_report',
     'sales_prediction',
-    'settings'
+    'settings',
+    'category',
+    'retail'
 ];
 
 $page_to_include = 'dashboard';
@@ -145,12 +147,29 @@ if (!empty($_GET['page'])) {
                         </ul>
                     </li>
 
+                    <li class="submenu <?= ($page_to_include === 'category' || $page_to_include === 'retail_values') ? 'open' : '' ?>">
+                        <a class="submenu-toggle" title="Product Settings">
+                            <i class="fa-solid fa-boxes-stacked"></i> <span>Product Settings</span>
+                            <i class="fa-solid fa-chevron-down arrow"></i>
+                        </a>
+                        <ul class="submenu-items">
+                            <li class="<?= ($page_to_include === 'category') ? 'active' : '' ?>">
+                                <a href="?page=category"><i class="fa-solid fa-tags"></i> <span>Manage Categories</span></a>
+                            </li>
+                            <li class="<?= ($page_to_include === 'retail') ? 'active' : '' ?>">
+                                <a href="?page=retail"><i class="fa-solid fa-money-bill-wave"></i> <span>Retail Management </span></a>
+                            </li>
+                        </ul>
+                    </li>
+
                     <li class="<?= ($page_to_include === 'supplier') ? 'active' : '' ?>">
                         <a href="?page=supplier" title="Add Supplier"><i class="fa-solid fa-user-plus"></i> <span>Supplier</span></a>
                     </li>
+
                     <li class="<?= ($page_to_include === 'sales_record') ? 'active' : '' ?>">
                         <a href="?page=sales_record" title="Sales Record"><i class="fa-solid fa-receipt"></i> <span>Sales Record</span></a>
                     </li>
+
                     <li class="<?= ($page_to_include === 'analytics_report') ? 'active' : '' ?>">
                         <a href="?page=analytics_report" title="Analytics Report"><i class="fa-solid fa-chart-pie"></i> <span>Analytics & Reports</span></a>
                     </li>
@@ -238,7 +257,7 @@ if (!empty($_GET['page'])) {
                                                 unset($_SESSION['error']); ?></div>
                 <?php endif; ?>
 
-                <form action="update_profile_budegero.php" method="POST" enctype="multipart/form-data">
+                <form action="update_profile.php" method="POST" enctype="multipart/form-data">
                     <div class="profile-pic-wrapper">
                         <?php
                         $modal_pic = '../uploads/default.png';
@@ -248,11 +267,16 @@ if (!empty($_GET['page'])) {
                         <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
                     </div>
 
-                    <label>First Name</label>
-                    <input type="text" name="first_name" value="<?= htmlspecialchars($_SESSION['first_name'] ?? ''); ?>" required>
-
-                    <label>Last Name</label>
-                    <input type="text" name="last_name" value="<?= htmlspecialchars($_SESSION['last_name'] ?? ''); ?>" required>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>First Name</label>
+                            <input type="text" name="first_name" value="<?= htmlspecialchars($_SESSION['first_name'] ?? ''); ?>" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Last Name</label>
+                            <input type="text" name="last_name" value="<?= htmlspecialchars($_SESSION['last_name'] ?? ''); ?>" required>
+                        </div>
+                    </div>
 
                     <label>Contact</label>
                     <input type="text" name="contact" value="<?= htmlspecialchars($_SESSION['contact'] ?? ''); ?>" required>
@@ -275,57 +299,7 @@ if (!empty($_GET['page'])) {
         </div>
     </main>
 
-
-    <div id="profileModal" class="modal" aria-hidden="true" style="display:none;">
-        <div class="modal-content">
-            <span class="close-btn" id="closeProfile" aria-label="Close">&times;</span>
-            <h2>Edit Profile</h2>
-
-            <?php if (!empty($_SESSION['success'])): ?>
-                <div class="alert success"><?= htmlspecialchars($_SESSION['success']);
-                                            unset($_SESSION['success']); ?></div>
-            <?php endif; ?>
-            <?php if (!empty($_SESSION['error'])): ?>
-                <div class="alert error"><?= htmlspecialchars($_SESSION['error']);
-                                            unset($_SESSION['error']); ?></div>
-            <?php endif; ?>
-
-            <form action="update_profile.php" method="POST" enctype="multipart/form-data" id="profileForm">
-                <div class="profile-pic-wrapper">
-                    <?php
-                    $modal_pic = '../uploads/default.png';
-                    if (!empty($_SESSION['profile_pic'])) $modal_pic = '../' . ltrim($_SESSION['profile_pic'], '/');
-                    ?>
-                    <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Profile" id="profilePreview">
-                    <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
-                </div>
-
-                <label>First Name</label>
-                <input type="text" name="first_name" value="<?= htmlspecialchars($_SESSION['first_name'] ?? ''); ?>" required>
-
-                <label>Last Name</label>
-                <input type="text" name="last_name" value="<?= htmlspecialchars($_SESSION['last_name'] ?? ''); ?>" required>
-
-                <label>Contact</label>
-                <input type="text" name="contact" value="<?= htmlspecialchars($_SESSION['contact'] ?? ''); ?>" required>
-
-                <label>Email</label>
-                <input type="email" name="email" value="<?= htmlspecialchars($_SESSION['email'] ?? ''); ?>" required>
-
-                <label>Username</label>
-                <input type="text" name="username" value="<?= htmlspecialchars($_SESSION['username'] ?? ''); ?>" required>
-
-                <label>Password</label>
-                <input type="password" name="password" placeholder="Enter new password">
-
-                <label>Confirm Password</label>
-                <input type="password" name="confirm_password" placeholder="Confirm new password">
-
-                <button type="submit" class="save-btn">Save Changes</button>
-            </form>
-        </div>
-    </div>
-
+    <!-- manage profile -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const manageProfile = document.getElementById("manageProfile");
@@ -356,6 +330,8 @@ if (!empty($_GET['page'])) {
         });
     </script>
 
+
+    <!-- profile dropdown -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const profileLink = document.querySelector('#dropdownMenu a[href="#profile"]');
@@ -404,6 +380,8 @@ if (!empty($_GET['page'])) {
         });
     </script>
 
+
+    <!-- notification -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const notifBtn = document.getElementById("notifBtn");
@@ -424,6 +402,7 @@ if (!empty($_GET['page'])) {
         });
     </script>
 
+
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const collapseBtn = document.getElementById("collapseBtn");
@@ -439,7 +418,7 @@ if (!empty($_GET['page'])) {
         });
     </script>
 
-
+    <!-- sidebar -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const sidebar = document.querySelector(".sidebar");

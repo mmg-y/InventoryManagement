@@ -715,16 +715,17 @@ body {
   display: none;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 10px;
   box-sizing: border-box;
 }
 
 .modal-content {
   background: var(--white);
   border-radius: 10px;
-  padding: 30px 25px;
+  padding: 20px 25px;
   width: 100%;
-  max-width: 500px;
+  max-width: 450px;
+  max-height: 90vh;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   position: relative;
   animation: slideDown 0.3s ease-out;
@@ -749,6 +750,27 @@ body {
   display: flex;
 }
 
+.profile-pic-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.profile-pic-wrapper img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid var(--ghostWhite);
+}
+
+.profile-pic-wrapper input[type="file"] {
+  margin-top: 10px;
+  text-align: center;
+}
+
+
 @keyframes slideDown {
   from {
     transform: translateY(-50px);
@@ -762,18 +784,18 @@ body {
 }
 
 
-.close {
+.close-btn {
   position: absolute;
-  top: 15px;
-  right: 20px;
-  font-size: 24px;
+  top: 12px;
+  right: 12px;
+  font-size: 25px;
   font-weight: bold;
-  cursor: pointer;
+  /* cursor: pointer; */
   color: var(--darkGray);
   transition: color 0.2s ease;
 }
 
-.close:hover {
+.close-btn:hover {
   color: var(--smokey);
 }
 
