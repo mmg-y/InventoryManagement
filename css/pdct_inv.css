@@ -68,74 +68,66 @@
 
 .table-container {
     background: var(--white);
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    overflow-x: auto;
 }
 
-table {
+.table-container table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 14px;
 }
 
+.table-container th,
+.table-container td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--silver);
+    text-align: center;
+    vertical-align: middle;
+}
+
+.table-container th {
+    background: var(--platinum);
+    font-weight: 600;
+    color: var(--darkGray);
+}
+
+.table-container tbody tr:hover {
+    background: #f9fafb;
+    transition: background 0.2s ease;
+}
+
+td[colspan] {
+    text-align: center;
+    font-style: italic;
+    color: var(--gray);
+}
+
+/* Product image */
 .table-container td img {
     width: 50px;
     height: 50px;
     object-fit: cover;
     border-radius: 6px;
-    transition: transform 0.2s ease;
-}
-
-table td img {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-    border-radius: 6px;
-    border: 1px solid var(--whiteThree);
+    border: 1px solid var(--silver);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-table td img:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
 .table-container td img:hover {
-    transform: scale(1.5);
-    /* slightly enlarge on hover */
-    z-index: 10;
+    transform: scale(1.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 2;
     position: relative;
 }
 
-table tbody tr:hover {
-    background: #f4f6f8;
-    transition: background 0.2s ease;
-}
-
-table td,
-table th {
-    background: transparent !important;
-}
-
-th,
-td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid var(--silver);
-}
-
-th {
-    background: var(--ghostWhite);
-    font-weight: bold;
-}
-
-tr:hover {
-    background: #f9fafb;
-}
-
+/* Sort links in header */
 th a {
-    color: inherit;
+    cursor: pointer;
     text-decoration: none;
+    color: inherit;
 }
 
 th a:hover {
@@ -144,6 +136,7 @@ th a:hover {
 
 .sort-indicator {
     font-size: 0.8em;
+    margin-left: 4px;
 }
 
 .actions-bar {
@@ -256,65 +249,17 @@ th a:hover {
     font-size: 14px;
 }
 
-.actions button {
-    border: none;
-    padding: 6px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-right: 5px;
-    font-size: 14px;
-}
-
-.actions button,
-.actions a {
-    display: inline-flex;
+.no-image {
+    width: 50px;
+    height: 50px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 6px 10px;
-    font-size: 14px;
-    border-radius: 5px;
-    text-decoration: none;
-}
-
-.edit-btn {
-    background: var(--teal);
-    color: var(--white);
-}
-
-.delete-btn {
-    display: inline-block;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    background: #ef4444;
-    color: var(--white);
-    text-decoration: none;
-}
-
-.edit-btn:hover {
-    opacity: 0.9;
-}
-
-.delete-btn:hover {
-    opacity: 0.9;
-}
-
-.add-btn {
-    background: var(--teal);
-    color: var(--white);
-    padding: 10px 15px;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    margin-bottom: 15px;
-    font-size: 14px;
-}
-
-.add-btn i {
-    margin-right: 6px;
+    color: #9ca3af;
+    font-size: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #f3f4f6;
 }
 
 /* .modal {

@@ -1,70 +1,56 @@
 <?php
 include '../config.php';
 
-// handler of ajax
 if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     $limit = 10;
-    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-    if ($page < 1) $page = 1;
+    $page = max(1, intval($_GET['page'] ?? 1));
     $start = ($page - 1) * $limit;
 
-    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-    $statusFilter = isset($_GET['status']) ? trim($_GET['status']) : '';
-    $sort = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
-    $order = isset($_GET['order']) ? $_GET['order'] : 'DESC';
+    $search = trim($_GET['search'] ?? '');
+    $statusFilter = trim($_GET['status'] ?? '');
+    $sort = $_GET['sort'] ?? 'sale_date';
+    $order = strtoupper($_GET['order'] ?? 'DESC');
 
-    $valid_columns = ['cart_id', 'seller', 'status', 'created_at'];
-    if (!in_array($sort, $valid_columns)) $sort = 'created_at';
-    $order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
+    $valid_columns = ['sales_id', 'cashier_id', 'total_amount', 'sale_date', 'status'];
+    if (!in_array($sort, $valid_columns)) $sort = 'sale_date';
+    $order = $order === 'ASC' ? 'ASC' : 'DESC';
     $toggle_order = $order === 'ASC' ? 'DESC' : 'ASC';
 
-    $where = "WHERE 1=1";
-    if ($search) {
-        $safeSearch = $conn->real_escape_string($search);
-        $where .= " AND c.seller LIKE '%$safeSearch%'";
-    }
-    if ($statusFilter) {
-        $safeStatus = $conn->real_escape_string($statusFilter);
-        $where .= " AND c.status='$safeStatus'";
-    }
+    // Build WHERE clause
+    $where = ["c.status != 'cancelled'"]; // exclude cancelled by default
+    if ($statusFilter) $where[] = "c.status = '" . $conn->real_escape_string($statusFilter) . "'";
+    if ($search) $where[] = "(u.first_name LIKE '%" . $conn->real_escape_string($search) . "%' 
+                               OR u.last_name LIKE '%" . $conn->real_escape_string($search) . "%'
+                               OR p.product_name LIKE '%" . $conn->real_escape_string($search) . "%')";
+    $where_sql = "WHERE " . implode(" AND ", $where);
 
-    // Get total carts for pagination
-    $count_sql = "SELECT COUNT(*) as count FROM carts c $where";
-    $total = $conn->query($count_sql)->fetch_assoc()['count'];
-    $pages = ceil($total / $limit);
+    // Count total rows for pagination
+    $count_sql = "SELECT COUNT(DISTINCT s.sales_id) AS total
+              FROM sales s
+              LEFT JOIN user u ON s.cashier_id = u.id
+              LEFT JOIN sales_items si ON si.sale_id = s.sales_id
+              LEFT JOIN product p ON si.product_id = p.product_id
+              LEFT JOIN carts c ON c.cart_id = s.sales_id
+              $where_sql";
+    $total_rows = $conn->query($count_sql)->fetch_assoc()['total'];
+    $pages = ceil($total_rows / $limit);
 
-    // Fetch paginated carts
-    $sql_carts = "SELECT c.cart_id, c.seller, c.status, c.created_at
-                  FROM carts c
-                  $where
-                  ORDER BY $sort $order
-                  LIMIT $start, $limit";
-    $result_carts = $conn->query($sql_carts);
+    // Fetch paginated sales
+    $sql = "SELECT s.sales_id, s.cashier_id, s.sale_date, s.total_amount, s.cash_received, s.change_amount, s.remarks,
+               u.first_name, u.last_name, c.status
+        FROM sales s
+        LEFT JOIN user u ON s.cashier_id = u.id
+        LEFT JOIN sales_items si ON si.sale_id = s.sales_id
+        LEFT JOIN product p ON si.product_id = p.product_id
+        LEFT JOIN carts c ON c.cart_id = s.sales_id
+        $where_sql
+        GROUP BY s.sales_id
+        ORDER BY $sort $order
+        LIMIT $start, $limit";
+
+    $result = $conn->query($sql);
 
     $grandTotal = 0;
-    $carts = [];
-    $cart_ids = [];
-
-    while ($cart = $result_carts->fetch_assoc()) {
-        $carts[$cart['cart_id']] = $cart;
-        $cart_ids[] = $cart['cart_id'];
-    }
-
-    // Fetch all items for these carts in one query
-    $items_by_cart = [];
-    if (!empty($cart_ids)) {
-        $ids_str = implode(',', $cart_ids);
-        $sql_items = "SELECT ci.cart_id, ci.qty, ci.price, p.product_name
-                      FROM cart_items ci
-                      JOIN product p ON ci.product_id = p.product_id
-                      WHERE ci.cart_id IN ($ids_str)
-                      ORDER BY ci.cart_id";
-        $items_result = $conn->query($sql_items);
-
-        while ($item = $items_result->fetch_assoc()) {
-            $items_by_cart[$item['cart_id']][] = $item;
-        }
-    }
 ?>
 
     <div class="table-container">
@@ -73,57 +59,37 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
                 <tr>
                     <?php
                     $columns = [
-                        'cart_id' => 'Sale ID',
-                        'seller' => 'Seller',
-                        'product_name' => 'Product',
-                        'qty' => 'Quantity',
-                        'price' => 'Price',
-                        'total' => 'Line Total',
-                        'status' => 'Status',
-                        'created_at' => 'Sale Date'
+                        'sales_id' => 'Sale ID',
+                        'cashier_id' => 'Cashier ID',
+                        'total_amount' => 'Total',
+                        'sale_date' => 'Sale Date',
+                        'cash_received' => 'Cash Received',
+                        'change_amount' => 'Change',
+                        'status' => 'Status',       // added status column
+                        'remarks' => 'Remarks'
                     ];
                     foreach ($columns as $col => $label) {
                         $indicator = ($sort === $col) ? ($order === 'ASC' ? '▲' : '▼') : '';
-                        echo "<th><a href='#' class='sort-column' data-column='$col' data-order='$toggle_order'><span class='sort-indicator'>$indicator</span>$label</a></th>";
+                        echo "<th><a href='#' class='sort-column' data-column='$col' data-order='$toggle_order'>$label $indicator</a></th>";
                     }
                     ?>
                 </tr>
             </thead>
             <tbody>
                 <?php
-                if (!empty($carts)) {
-                    foreach ($carts as $cart_id => $cart) {
-                        $subtotal = 0;
-                        if (isset($items_by_cart[$cart_id])) {
-                            foreach ($items_by_cart[$cart_id] as $item) {
-                                $lineTotal = $item['qty'] * $item['price'];
-                                $subtotal += $lineTotal;
-                                $grandTotal += $lineTotal;
-
-                                $statusClass = '';
-                                if ($cart['status'] == 'completed') $statusClass = 'status-completed';
-                                if ($cart['status'] == 'pending') $statusClass = 'status-pending';
-                                if ($cart['status'] == 'cancelled') $statusClass = 'status-cancelled';
-
-                                echo "<tr>
-                                    <td>{$cart['cart_id']}</td>
-                                    <td>{$cart['seller']}</td>
-                                    <td>{$item['product_name']}</td>
-                                    <td>{$item['qty']}</td>
-                                    <td>{$item['price']}</td>
-                                    <td>$lineTotal</td>
-                                    <td class='$statusClass'>{$cart['status']}</td>
-                                    <td>{$cart['created_at']}</td>
-                                  </tr>";
-                            }
-
-                            // Print subtotal once per cart
-                            // echo "<tr class='subtotal-row'>
-                            //     <td colspan='5' class='text-right'><strong>Subtotal:</strong></td>
-                            //     <td><strong>$subtotal</strong></td>
-                            //     <td colspan='2'></td>
-                            //   </tr>";
-                        }
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $grandTotal += $row['total_amount'];
+                        echo "<tr>
+                    <td>{$row['sales_id']}</td>
+                    <td>{$row['cashier_id']} </td>
+                    <td>₱" . number_format($row['total_amount'], 2) . "</td>
+                    <td>" . date('M d, Y h:i A', strtotime($row['sale_date'])) . "</td>
+                    <td>₱" . number_format($row['cash_received'], 2) . "</td>
+                    <td>₱" . number_format($row['change_amount'], 2) . "</td>
+                    <td class='status-" . strtolower($row['status']) . "'>" . ucfirst($row['status']) . "</td>
+                    <td>" . htmlspecialchars($row['remarks']) . "</td>
+                </tr>";
                     }
                 } else {
                     echo "<tr><td colspan='8'>No sales records found.</td></tr>";
@@ -132,19 +98,39 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
             </tbody>
         </table>
 
-        <div class="grand-total">Grand Total: <?= "₱" . $grandTotal ?></div>
+
+        <div class="grand-total">Grand Total: ₱<?= number_format($grandTotal, 2) ?></div>
 
         <div class="pagination">
-            <?php for ($i = 1; $i <= $pages; $i++): ?>
-                <a href="#" class="page-link" data-page="<?= $i ?>"><?= $i ?></a>
-            <?php endfor; ?>
-        </div>
-    </div>
+            <?php
+            $range = 2;
+            $prev = max(1, $page - 1);
+            $next = min($pages, $page + 1);
 
+            if ($page > 1) {
+                echo "<a href='#' class='page-link' data-page='1'>&laquo;&laquo;</a>";
+                echo "<a href='#' class='page-link' data-page='$prev'>&laquo;</a>";
+            }
+
+            for ($i = max(1, $page - $range); $i <= min($pages, $page + $range); $i++) {
+                $active = $i == $page ? 'active' : '';
+                echo "<a href='#' class='page-link $active' data-page='$i'>$i</a>";
+            }
+
+            if ($page < $pages) {
+                echo "<a href='#' class='page-link' data-page='$next'>&raquo;</a>";
+                echo "<a href='#' class='page-link' data-page='$pages'>&raquo;&raquo;</a>";
+            }
+            ?>
+        </div>
+
+
+    </div>
 <?php
     exit;
 }
 ?>
+
 
 
 <link rel="stylesheet" href="../css/sales_record.css">
@@ -161,7 +147,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
                     <option value="">All Status</option>
                     <option value="completed" <?= (isset($statusFilter) && $statusFilter == 'completed') ? 'selected' : '' ?>>Completed</option>
                     <option value="pending" <?= (isset($statusFilter) && $statusFilter == 'pending') ? 'selected' : '' ?>>Pending</option>
-                    <option value="cancelled" <?= (isset($statusFilter) && $statusFilter == 'cancelled') ? 'selected' : '' ?>>Cancelled</option>
                 </select>
                 <i class="fa fa-filter filter-icon"></i>
             </div>

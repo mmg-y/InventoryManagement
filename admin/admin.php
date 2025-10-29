@@ -28,7 +28,14 @@ if (!empty($_SESSION['profile_pic'])) {
 
 $notifications = [];
 
-$lowStockSql = "SELECT product_name, total_quantity AS quantity, threshold FROM product WHERE total_quantity <= threshold";
+// Low stock items 
+$lowStockSql = "
+    SELECT p.product_name, COALESCE(SUM(ps.remaining_qty),0) AS quantity, p.threshold
+    FROM product p
+    LEFT JOIN product_stocks ps ON p.product_id = ps.product_id
+    GROUP BY p.product_id
+    HAVING quantity <= COALESCE(p.threshold, 0)
+";
 $lowStockItems = $conn->query($lowStockSql);
 if ($lowStockItems && $lowStockItems->num_rows > 0) {
     while ($row = $lowStockItems->fetch_assoc()) {
@@ -40,8 +47,9 @@ if ($lowStockItems && $lowStockItems->num_rows > 0) {
     }
 }
 
-$pendingPurchases = 0;
+// Pending purchases
 $pendingQuery = $conn->query("SELECT COUNT(*) AS cnt FROM product_stocks WHERE status='pending'");
+$pendingPurchases = 0;
 if ($pendingQuery && ($row = $pendingQuery->fetch_assoc())) {
     $pendingPurchases = (int)$row['cnt'];
 }
@@ -54,18 +62,12 @@ if ($pendingPurchases > 0) {
     ];
 }
 
-if ($pendingPurchases > 0) {
-    $notifications[] = [
-        'message' => "You have {$pendingPurchases} pending purchase(s).",
-        'read' => false,
-        'link' => '#'
-    ];
-}
-
+// Count unread notifications
 $unreadCount = 0;
 foreach ($notifications as $note) {
-    if (empty($note['read'])) $unreadCount++;
+    if ($note['read'] === false) $unreadCount++;
 }
+
 
 $allowed_pages = [
     'dashboard',
@@ -198,7 +200,7 @@ if (!empty($_GET['page'])) {
                 <div class="notification-dropdown" id="notifDropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $note): ?>
-                            <a href="<?= htmlspecialchars($note['link']) ?>" class="notification-item <?= empty($note['read']) ? 'unread' : '' ?>">
+                            <a href="<?= htmlspecialchars($note['link']) ?>" class="notification-item <?= $note['read'] === false ? 'unread' : '' ?>">
                                 <?= htmlspecialchars($note['message']) ?>
                             </a>
                         <?php endforeach; ?>
@@ -208,6 +210,7 @@ if (!empty($_GET['page'])) {
                 </div>
             </div>
         </div>
+
 
         <div class="page-content">
             <?php

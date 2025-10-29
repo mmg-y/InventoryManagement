@@ -16,10 +16,10 @@ if (tableExists($conn, 'sales')) {
 
 // best product
 $bestProduct = ['product_name' => 'N/A', 'total_qty' => 0];
-if (tableExists($conn, 'sales_item')) {
+if (tableExists($conn, 'sales_items')) {
     $sql = "
         SELECT p.product_name, SUM(si.quantity) AS total_qty
-        FROM sales_item si
+        FROM sales_items si
         JOIN product p ON si.product_id = p.product_id
         GROUP BY p.product_id
         ORDER BY total_qty DESC
@@ -49,10 +49,10 @@ if (tableExists($conn, 'sales')) {
 // top products
 $productLabels = [];
 $productValues = [];
-if (tableExists($conn, 'sales_item')) {
+if (tableExists($conn, 'sales_items')) {
     $res = $conn->query("
         SELECT p.product_name, SUM(si.quantity) AS sold
-        FROM sales_item si
+        FROM sales_items si
         JOIN product p ON si.product_id = p.product_id
         GROUP BY p.product_id
         ORDER BY sold DESC
@@ -117,9 +117,6 @@ if (tableExists($conn, 'supplier') && tableExists($conn, 'product_stocks')) {
     }
 }
 
-// ----------------------
-// 9. SUPPLIER PIE DATA
-// ----------------------
 $supplierLabels = [];
 $supplierValues = [];
 if (tableExists($conn, 'supplier') && tableExists($conn, 'product_stocks')) {

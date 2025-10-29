@@ -73,6 +73,7 @@ $categories = $conn->query("SELECT * FROM category ORDER BY category_name ASC");
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Image</th>
                     <th>Code</th>
                     <th>Name</th>
                     <th>Category</th>
@@ -85,7 +86,7 @@ $categories = $conn->query("SELECT * FROM category ORDER BY category_name ASC");
             </thead>
             <tbody id="inventory-body">
                 <tr>
-                    <td colspan="9">Loading...</td>
+                    <td colspan="10">Loading...</td>
                 </tr>
             </tbody>
         </table>
@@ -118,8 +119,14 @@ $categories = $conn->query("SELECT * FROM category ORDER BY category_name ASC");
 
                         const statusLabel = row.status_label ?? 'Unknown';
 
+                        // Show image only if it exists, otherwise "No Image" div
+                        const imgCell = row.product_picture && row.product_picture.trim() !== '' ?
+                            `<img src="../images/${encodeURIComponent(row.product_picture)}" alt="${row.product_name}" class="product-img">` :
+                            `<div class="no-image">No Image</div>`;
+
                         tr.innerHTML = `
                         <td>${row.product_id}</td>
+                        <td>${imgCell}</td>
                         <td>${row.product_code}</td>
                         <td>${row.product_name}</td>
                         <td>${row.category_name}</td>

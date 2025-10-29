@@ -24,6 +24,7 @@ $sql = "
 SELECT p.product_id,
        p.product_code,
        p.product_name,
+       p.product_picture,        
        p.category,
        c.category_name,
        p.total_quantity,
@@ -36,11 +37,11 @@ SELECT p.product_id,
        r.percent AS retail_percent,
        COALESCE(ps.cost_price,0) AS cost_price,
        (COALESCE(ps.cost_price,0) * (1 + COALESCE(r.percent,0)/100)) AS retail_price
-    FROM product p
-    LEFT JOIN category c ON p.category = c.category_id
-    LEFT JOIN status s ON p.threshold_id = s.status_id
-    LEFT JOIN retail_variables r ON p.retail_id = r.retail_id
-    LEFT JOIN (
+FROM product p
+LEFT JOIN category c ON p.category = c.category_id
+LEFT JOIN status s ON p.threshold_id = s.status_id
+LEFT JOIN retail_variables r ON p.retail_id = r.retail_id
+LEFT JOIN (
     SELECT product_id, cost_price
     FROM product_stocks
     WHERE status='active'
@@ -62,6 +63,7 @@ while ($row = $result->fetch_assoc()) {
     // default values
     if ($row['status_label'] === null) $row['status_label'] = 'Unknown';
     if ($row['category_name'] === null) $row['category_name'] = 'Uncategorized';
+    if ($row['product_picture'] === null) $row['product_picture'] = '';
     $data[] = $row;
 }
 

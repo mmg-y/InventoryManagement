@@ -51,17 +51,35 @@ $categories = $conn->query("SELECT * FROM category ORDER BY category_name");
 
 // Get or create cart
 $cart = $conn->query("SELECT * FROM carts WHERE seller = '$cashier_id' AND status = 'pending' LIMIT 1")->fetch_assoc();
+
 if (!$cart) {
+    $today = date('Ymd');
+
+    $result = $conn->query("SELECT order_code FROM carts WHERE DATE(created_at) = CURDATE() ORDER BY cart_id DESC LIMIT 1");
+    $last_code = $result->fetch_assoc()['order_code'] ?? null;
+
+    if ($last_code) {
+        // Increment the sequence part
+        $parts = explode('-', $last_code);
+        $seq = intval($parts[1]) + 1;
+    } else {
+        $seq = 1;
+    }
+
+    $order_code = $today . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+
+    // Insert new cart with order_code
     $conn->query("
-        INSERT INTO carts (seller, status, total, total_earning, created_at, updated_at) 
-        VALUES ('$cashier_id', 'pending', 0, 0, NOW(), NOW())
+        INSERT INTO carts (seller, status, total, total_earning, order_code, created_at, updated_at) 
+        VALUES ('$cashier_id', 'pending', 0, 0, '$order_code', NOW(), NOW())
     ");
+
     $cart_id = $conn->insert_id;
 } else {
     $cart_id = $cart['cart_id'];
+    $order_code = $cart['order_code'];
 }
 
-// Cart items query including product_picture
 $cart_items = $conn->query("
     SELECT 
         ci.cart_items_id,
@@ -198,7 +216,7 @@ $columns = [
                     $picture = $p['product_picture'] ? htmlspecialchars(basename($p['product_picture'])) : '';
                 ?>
                     <div class="product-card" data-category="<?= $p['category'] ?>">
-                        <?php if ($picture && file_exists("../uploads/$picture")): ?>
+                        <?php if ($picture && file_exists("../images/$picture")): ?>
                             <img src="../images/<?= $picture ?>" alt="<?= htmlspecialchars($p['product_name']) ?>">
                         <?php else: ?>
                             <div class="no-image">No Image</div>
@@ -343,7 +361,6 @@ $columns = [
                 <div class="cash-group">
                     <label class="cash-label" for="cash">Cash Received:</label>
                     <div class="cash-input-wrapper">
-                        <!-- NOTE: name="cash" is required so POST includes it -->
                         <input
                             type="number"
                             name="cash"
@@ -488,11 +505,11 @@ $columns = [
                 url: "checkout.php",
                 type: "POST",
                 data: data,
-                dataType: "json", // expect JSON
+                dataType: "json",
                 success: function(response) {
                     if (response.status === "success") {
                         Toastify({
-                            text: "✅ Purchase completed successfully!",
+                            text: "Purchase completed successfully!",
                             duration: 3000,
                             gravity: "top",
                             position: "right",
@@ -507,7 +524,7 @@ $columns = [
                         setTimeout(() => location.reload(), 1500);
                     } else {
                         Toastify({
-                            text: "⚠️ " + (response.message || "Checkout failed."),
+                            text: (response.message || "Checkout failed."),
                             duration: 4000,
                             gravity: "top",
                             position: "right",
@@ -520,7 +537,7 @@ $columns = [
                     // show toast and print full server response to console for debugging
                     let body = xhr.responseText || "";
                     Toastify({
-                        text: "❌ Server error. Check console (F12) for details.",
+                        text: "Server error. Check console (F12) for details.",
                         duration: 6000,
                         gravity: "top",
                         position: "right",

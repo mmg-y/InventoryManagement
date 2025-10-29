@@ -386,7 +386,7 @@ h2 {
 .billing-table th,
 .billing-table td {
     padding: 9px;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid var(--silver);
     font-size: 14px;
 }
@@ -424,12 +424,12 @@ h2 {
 
 .billing-table th {
     /* padding: 10px; */
-    text-align: left;
+    text-align: center;
     background: var(--ghostWhite);
 }
 
 .billing-table th a {
-    color: var(--blue);
+    color: var(--teal);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
@@ -445,8 +445,8 @@ h2 {
     display: flex;
     align-items: center;
     gap: 12px;
-    flex-wrap: nowrap; /* ⬅ keep everything on one row */
-    overflow-x: auto;  /* ⬅ allow horizontal scroll on smaller screens */
+    flex-wrap: nowrap; 
+    overflow-x: auto;  
     background: #f6f7fb;
     padding: 10px 15px;
     border-radius: 8px;

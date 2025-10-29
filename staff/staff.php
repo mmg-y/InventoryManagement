@@ -21,28 +21,45 @@ if (!empty($_SESSION['profile_pic'])) {
 
 $notifications = [];
 
-$lowStockQuery = "
-    SELECT 
-        p.product_name, 
-        p.total_quantity, 
-        p.threshold
+// Low stock items 
+$lowStockSql = "
+    SELECT p.product_name, COALESCE(SUM(ps.remaining_qty),0) AS quantity, p.threshold
     FROM product p
-    WHERE p.total_quantity <= p.threshold
+    LEFT JOIN product_stocks ps ON p.product_id = ps.product_id
+    GROUP BY p.product_id
+    HAVING quantity <= COALESCE(p.threshold, 0)
 ";
-
-$result = $conn->query($lowStockQuery);
-
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
+$lowStockItems = $conn->query($lowStockSql);
+if ($lowStockItems && $lowStockItems->num_rows > 0) {
+    while ($row = $lowStockItems->fetch_assoc()) {
         $notifications[] = [
-            'message' => "Low stock: {$row['product_name']} ({$row['total_quantity']} left)",
+            'message' => "Low stock: {$row['product_name']} ({$row['quantity']} left)",
             'read' => false,
             'link' => '#'
         ];
     }
 }
 
-$unreadCount = count(array_filter($notifications, fn($note) => !$note['read']));
+// Pending purchases
+$pendingQuery = $conn->query("SELECT COUNT(*) AS cnt FROM product_stocks WHERE status='pending'");
+$pendingPurchases = 0;
+if ($pendingQuery && ($row = $pendingQuery->fetch_assoc())) {
+    $pendingPurchases = (int)$row['cnt'];
+}
+
+if ($pendingPurchases > 0) {
+    $notifications[] = [
+        'message' => "You have {$pendingPurchases} pending purchase(s).",
+        'read' => false,
+        'link' => '#'
+    ];
+}
+
+// Count unread notifications
+$unreadCount = 0;
+foreach ($notifications as $note) {
+    if ($note['read'] === false) $unreadCount++;
+}
 ?>
 
 
@@ -143,7 +160,7 @@ $unreadCount = count(array_filter($notifications, fn($note) => !$note['read']));
                 <div class="notification-dropdown" id="notifDropdown">
                     <?php if (!empty($notifications)): ?>
                         <?php foreach ($notifications as $note): ?>
-                            <a href="<?= htmlspecialchars($note['link']) ?>" class="notification-item <?= empty($note['read']) ? 'unread' : '' ?>">
+                            <a href="<?= htmlspecialchars($note['link']) ?>" class="notification-item <?= $note['read'] === false ? 'unread' : '' ?>">
                                 <?= htmlspecialchars($note['message']) ?>
                             </a>
                         <?php endforeach; ?>
@@ -153,7 +170,6 @@ $unreadCount = count(array_filter($notifications, fn($note) => !$note['read']));
                 </div>
             </div>
         </div>
-
 
         <div class="page-content">
             <?php
