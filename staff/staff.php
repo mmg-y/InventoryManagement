@@ -210,11 +210,16 @@ foreach ($notifications as $note) {
                         <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
                     </div>
 
-                    <label>First Name</label>
-                    <input type="text" name="first_name" value="<?= htmlspecialchars($_SESSION['first_name'] ?? ''); ?>" required>
-
-                    <label>Last Name</label>
-                    <input type="text" name="last_name" value="<?= htmlspecialchars($_SESSION['last_name'] ?? ''); ?>" required>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>First Name</label>
+                            <input type="text" name="first_name" value="<?= htmlspecialchars($_SESSION['first_name'] ?? ''); ?>" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Last Name</label>
+                            <input type="text" name="last_name" value="<?= htmlspecialchars($_SESSION['last_name'] ?? ''); ?>" required>
+                        </div>
+                    </div>
 
                     <label>Contact</label>
                     <input type="text" name="contact" value="<?= htmlspecialchars($_SESSION['contact'] ?? ''); ?>" required>
@@ -254,19 +259,19 @@ foreach ($notifications as $note) {
     <div id="toast-container">
         <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
             <div class="toast success show">
-                <span class="toast-icon">✅</span>
+                <!-- <span class="toast-icon">✅</span> -->
                 <span class="toast-text">Transaction successful!</span>
                 <span class="toast-close">&times;</span>
             </div>
         <?php elseif (isset($_GET['error']) && $_GET['error'] == 1): ?>
             <div class="toast error show">
-                <span class="toast-icon">❌</span>
+                <!-- <span class="toast-icon">❌</span> -->
                 <span class="toast-text">Transaction failed. Please try again.</span>
                 <span class="toast-close">&times;</span>
             </div>
         <?php elseif (isset($_GET['warning']) && $_GET['warning'] == 1): ?>
             <div class="toast warning show">
-                <span class="toast-icon">⚠️</span>
+                <!-- <span class="toast-icon">⚠️</span> -->
                 <span class="toast-text">Warning: Please check your input or stock levels.</span>
                 <span class="toast-close">&times;</span>
             </div>

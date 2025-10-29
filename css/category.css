@@ -1,0 +1,237 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+    --white: #ffffff;
+    --teal: #088395;
+    --aqua: #37B7C3;
+    --ghostWhite: #f8fafc;
+    --platinum: #e0f2fe;
+    --gray: #6b7280;
+    --lightGray: #d1d5db;
+    --darkGray: #333;
+    --navy: #071952;
+    --danger: #e63946;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+}
+
+body {
+    background: var(--ghostWhite);
+    color: var(--darkGray);
+}
+
+.content {
+    padding: 20px;
+}
+
+.page-title {
+    margin-bottom: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: var(--darkGray);
+}
+
+h2,
+h3 {
+    color: var(--darkGray);
+    margin-bottom: 10px;
+}
+
+.card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(8, 131, 149, 0.1);
+    border: 1px solid var(--platinum);
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--white);
+    /* border-radius: 8px; */
+    overflow: hidden;
+}
+
+.styled-table th {
+    background: #e0f3fe;
+    color: var(--darkGray);
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.styled-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--platinum);
+}
+
+.styled-table tr:hover {
+    background: var(--platinum);
+}
+
+input[type="text"],
+input[type="number"],
+select {
+    border: 1px solid var(--lightGray);
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: var(--white);
+    color: var(--darkGray);
+    transition: all 0.2s ease-in-out;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 6px rgba(8, 131, 149, 0.3);
+}
+
+.btn-primary {
+    background: var(--teal);
+    color: var(--white);
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background: var(--aqua);
+}
+
+.btn-save {
+    background: var(--teal);
+    color: var(--white);
+    border: none;
+    padding: 10px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-save:hover {
+    background: var(--white);
+    color: var(--smokey);
+    box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.1),
+        inset -6px -6px 12px rgba(255, 255, 255, 0.7);
+
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: var(--white);
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-danger:hover {
+    background: #c1121f;
+}
+
+.form-inline {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.editable-category,
+.editable-percent {
+    width: 120px;
+    padding: 6px;
+    border: 1px solid var(--lightGray);
+    border-radius: 5px;
+    text-align: center;
+}
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(7, 25, 82, 0.3);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 12px;
+    width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close {
+    float: right;
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--darkGray);
+    cursor: pointer;
+}
+
+.close:hover {
+    color: var(--teal);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    color: var(--darkGray);
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--lightGray);
+    border-radius: 6px;
+    outline: none;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 5px rgba(8, 131, 149, 0.3);
+}
