@@ -31,7 +31,6 @@ $unreadCount = count($notifications);
 
 $page_to_include = $_GET['page'] ?? 'dashboard';
 ?>
-?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -46,7 +45,7 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Remove blue underline from sidebar links */
+
         .sidebar a {
             text-decoration: none;
             color: inherit;
@@ -55,6 +54,229 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
         .sidebar a:visited,
         .sidebar a:active {
             color: inherit;
+        }
+
+        .profile-pic-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+
+        .profile-pic-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .profile-pic-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pic-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .pic-option:hover {
+            transform: translateY(-3px);
+        }
+
+        .pic-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #dee2e6;
+            transition: border-color 0.2s;
+            background-color: white;
+        }
+
+        .pic-option:hover .pic-preview {
+            border-color: #4dabf7;
+        }
+
+        .pic-option.selected .pic-preview {
+            border-color: #339af0;
+            box-shadow: 0 0 0 3px rgba(51, 154, 240, 0.25);
+        }
+
+        .pic-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .upload-area {
+            flex-direction: column;
+            background-color: #f1f3f5;
+            color: #868e96;
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .upload-area i {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+
+        .pic-label {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #495057;
+        }
+
+        .selected-preview {
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .selected-preview h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #495057;
+        }
+
+        .selected-img-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .selected-img-container img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #339af0;
+        }
+
+        .remove-btn {
+            background-color: #fa5252;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin: 0 auto;
+        }
+
+        .remove-btn:hover {
+            background-color: #e03131;
+        }
+
+        #profileModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+            z-index: 9999;
+        }
+
+        #profileModal .modal-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+        }
+
+        /* Form Styles */
+        .input-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .modal-content label {
+            font-weight: 500;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .modal-content input {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .modal-content input:focus {
+            border-color: #339af0;
+            box-shadow: 0 0 5px rgba(51, 154, 240, 0.3);
+        }
+
+        .save-btn {
+            align-self: flex-end;
+            background: #088395;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .save-btn:hover {
+            background: #066a7a;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .profile-pic-options {
+                justify-content: center;
+            }
+            
+            .pic-preview {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .selected-img-container img {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .input-row {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -69,12 +291,8 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
                     </div>
                     <div class="team-info">
                         <span class="team-name">MartIQ</span>
-                        <!-- <span class="team-plan">Smart sales, Smart Store</span> -->
                     </div>
                 </div>
-                <!-- <button class="collapse-btn" id="collapseBtn">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </button> -->
             </div>
         </div>
 
@@ -95,7 +313,6 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
             </div>
         </div>
 
-        <!-- Sidebar Footer -->
         <div class="sidebar-footer" id="profileMenu">
             <div class="profile-info">
                 <img src="<?= htmlspecialchars($profile_src); ?>" alt="User" class="profile-img" />
@@ -160,7 +377,6 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
             ?>
         </div>
 
-        <!-- Profile Modal -->
         <div id="profileModal" class="modal" aria-hidden="true">
             <div class="modal-content">
                 <span class="close-btn" id="closeProfile">&times;</span>
@@ -176,51 +392,93 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
                 <?php endif; ?>
 
                 <form action="update_profile_budegero.php" method="POST" enctype="multipart/form-data">
-                    <div class="profile-pic-wrapper">
-                        <?php
-                        $modal_pic = '../uploads/default.png';
-                        if (!empty($_SESSION['profile_pic'])) $modal_pic = '../' . ltrim($_SESSION['profile_pic'], '/');
-                        ?>
-                        <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Profile" id="profilePreview">
-                        <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
+
+                    <div class="profile-pic-section">
+                        <h3>Profile Picture</h3>
+                        <div class="profile-pic-options">
+
+                            <div class="pic-option current-pic">
+                                <div class="pic-preview">
+                                    <?php
+                                    $modal_pic = '../uploads/default.png';
+                                    if (!empty($_SESSION['profile_pic'])) $modal_pic = '../' . ltrim($_SESSION['profile_pic'], '/');
+                                    ?>
+                                    <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Current Profile" id="profilePreview">
+                                </div>
+                                <span class="pic-label">Current</span>
+                            </div>
+
+                            <div class="pic-option upload-pic">
+                                <div class="pic-preview upload-area" id="uploadArea">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Upload New</span>
+                                </div>
+                                <input type="file" name="profile_pic" id="profilePicInput" accept="image/*" hidden>
+                                <span class="pic-label">Upload</span>
+                            </div>
+                        </div>
+
+                        <div class="selected-preview">
+                            <h4>Selected Picture:</h4>
+                            <div class="selected-img-container">
+                                <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Selected Profile" id="selectedPreview">
+                            </div>
+                            <button type="button" id="removePicBtn" class="remove-btn">
+                                <i class="fa-solid fa-trash"></i> Remove Picture
+                            </button>
+                        </div>
                     </div>
 
-                    <label>First Name</label>
-                    <input type="text" name="first_name" value="<?= htmlspecialchars($_SESSION['first_name'] ?? ''); ?>" required>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>First Name</label>
+                            <input type="text" name="first_name" value="<?= htmlspecialchars($_SESSION['first_name'] ?? ''); ?>" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Last Name</label>
+                            <input type="text" name="last_name" value="<?= htmlspecialchars($_SESSION['last_name'] ?? ''); ?>" required>
+                        </div>
+                    </div>
 
-                    <label>Last Name</label>
-                    <input type="text" name="last_name" value="<?= htmlspecialchars($_SESSION['last_name'] ?? ''); ?>" required>
+                    <div class="input-group">
+                        <label>Contact</label>
+                        <input type="text" name="contact" value="<?= htmlspecialchars($_SESSION['contact'] ?? ''); ?>" required>
+                    </div>
 
-                    <label>Contact</label>
-                    <input type="text" name="contact" value="<?= htmlspecialchars($_SESSION['contact'] ?? ''); ?>" required>
+                    <div class="input-group">
+                        <label>Email</label>
+                        <input type="email" name="email" value="<?= htmlspecialchars($_SESSION['email'] ?? ''); ?>" required>
+                    </div>
 
-                    <label>Email</label>
-                    <input type="email" name="email" value="<?= htmlspecialchars($_SESSION['email'] ?? ''); ?>" required>
+                    <div class="input-group">
+                        <label>Username</label>
+                        <input type="text" name="username" value="<?= htmlspecialchars($_SESSION['username'] ?? ''); ?>" required>
+                    </div>
 
-                    <label>Username</label>
-                    <input type="text" name="username" value="<?= htmlspecialchars($_SESSION['username'] ?? ''); ?>" required>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" name="password" placeholder="Enter new password">
+                    </div>
 
-                    <label>Password</label>
-                    <input type="password" name="password" placeholder="Enter new password">
-
-                    <label>Confirm Password</label>
-                    <input type="password" name="confirm_password" placeholder="Confirm new password">
+                    <div class="input-group">
+                        <label>Confirm Password</label>
+                        <input type="password" name="confirm_password" placeholder="Confirm new password">
+                    </div>
 
                     <button type="submit" class="save-btn">Save Changes</button>
                 </form>
             </div>
         </div>
-
     </main>
-
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
+
             const manageProfile = document.getElementById("manageProfile");
             const profileModal = document.getElementById("profileModal");
             const closeProfile = document.getElementById("closeProfile");
 
-            if (manageProfile) {
+            if (manageProfile && profileModal) {
                 manageProfile.addEventListener("click", (e) => {
                     e.preventDefault();
                     profileModal.style.display = "flex";
@@ -228,7 +486,7 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
                 });
             }
 
-            if (closeProfile) {
+            if (closeProfile && profileModal) {
                 closeProfile.addEventListener("click", () => {
                     profileModal.style.display = "none";
                     profileModal.setAttribute("aria-hidden", "true");
@@ -241,46 +499,73 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
                     profileModal.setAttribute("aria-hidden", "true");
                 }
             });
-        });
-    </script>
-
-
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const profileLink = document.querySelector('#dropdownMenu a[href="#profile"]');
-            const profileModal = document.getElementById('profileModal');
-            const closeProfile = document.getElementById('closeProfile');
             const profilePicInput = document.getElementById('profilePicInput');
+            const uploadArea = document.getElementById('uploadArea');
             const profilePreview = document.getElementById('profilePreview');
+            const selectedPreview = document.getElementById('selectedPreview');
+            const removePicBtn = document.getElementById('removePicBtn');
+            const defaultPicOptions = document.querySelectorAll('.default-pic .pic-preview img');
+            const picOptions = document.querySelectorAll('.pic-option');
 
-            if (profileLink && profileModal) {
-                profileLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    profileModal.style.display = 'flex';
-                    profileModal.setAttribute('aria-hidden', 'false');
+            if (uploadArea) {
+                uploadArea.addEventListener('click', () => {
+                    profilePicInput.click();
                 });
             }
 
-            if (closeProfile && profileModal) {
-                closeProfile.addEventListener('click', () => {
-                    profileModal.style.display = 'none';
-                    profileModal.setAttribute('aria-hidden', 'true');
-                });
-            }
-
-            window.addEventListener('click', (e) => {
-                if (e.target === profileModal) {
-                    profileModal.style.display = 'none';
-                    profileModal.setAttribute('aria-hidden', 'true');
-                }
-            });
-
-            if (profilePicInput && profilePreview) {
+            if (profilePicInput) {
                 profilePicInput.addEventListener('change', (e) => {
                     const file = e.target.files[0];
-                    if (file) profilePreview.src = URL.createObjectURL(file);
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const imageUrl = e.target.result;
+                            updateSelectedPicture(imageUrl);
+                            selectOption(uploadArea.closest('.pic-option'));
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 });
+            }
+            
+            defaultPicOptions.forEach(img => {
+                img.addEventListener('click', () => {
+                    updateSelectedPicture(img.getAttribute('data-src'));
+                    selectOption(img.closest('.pic-option'));
+                });
+            });
+
+            const currentPicOption = document.querySelector('.current-pic');
+            if (currentPicOption) {
+                currentPicOption.addEventListener('click', () => {
+                    updateSelectedPicture(profilePreview.src);
+                    selectOption(currentPicOption);
+                });
+            }
+
+            if (removePicBtn) {
+                removePicBtn.addEventListener('click', () => {
+                    const defaultPic = '../uploads/default.png';
+                    updateSelectedPicture(defaultPic);
+                    selectOption(document.querySelector('.default-pic'));
+                    profilePicInput.value = ''; // Clear file input
+                });
+            }
+
+            function updateSelectedPicture(src) {
+                if (selectedPreview) selectedPreview.src = src;
+                if (profilePreview) profilePreview.src = src;
+            }
+
+            function selectOption(optionElement) {
+
+                picOptions.forEach(opt => opt.classList.remove('selected'));
+
+                if (optionElement) optionElement.classList.add('selected');
+            }
+
+            if (currentPicOption) {
+                selectOption(currentPicOption);
             }
 
             <?php if (!empty($_SESSION['open_profile_modal'])): ?>
@@ -291,12 +576,7 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
                 }
             <?php unset($_SESSION['open_profile_modal']);
             endif; ?>
-        });
-    </script>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            // === NOTIFICATION DROPDOWN ===
             const notifBtn = document.getElementById("notifBtn");
             const notifWrapper = document.getElementById("notifWrapper");
 
@@ -312,94 +592,48 @@ $page_to_include = $_GET['page'] ?? 'dashboard';
                     }
                 });
             }
-        });
-    </script>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const collapseBtn = document.getElementById("collapseBtn");
-            const sidebar = document.querySelector(".sidebar");
-            const main = document.querySelector(".main");
-            const topbar = document.querySelector(".topbar");
-
-            if (collapseBtn && sidebar) {
-                collapseBtn.addEventListener("click", () => {
-                    sidebar.classList.toggle("collapsed");
-                });
-            }
-        });
-    </script>
-
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
             const sidebar = document.querySelector(".sidebar");
             const profileMenu = document.getElementById("profileMenu");
             const toggleBtn = profileMenu?.querySelector(".profile-toggle");
             const dropdown = profileMenu?.querySelector(".profile-dropdown");
             const profileInfo = profileMenu?.querySelector(".profile-info");
 
-            if (!profileMenu || !dropdown || !profileInfo) return;
+            if (profileMenu && dropdown && profileInfo) {
+                const toggleDropdown = (e) => {
+                    e.stopPropagation();
+                    profileMenu.classList.toggle("open");
+                    const isOpen = profileMenu.classList.contains("open");
+                    dropdown.style.display = isOpen ? "block" : "none";
 
-            const toggleDropdown = (e) => {
-                e.stopPropagation();
-                profileMenu.classList.toggle("open");
-                const isOpen = profileMenu.classList.contains("open");
-                dropdown.style.display = isOpen ? "block" : "none";
+                    if (sidebar.classList.contains("collapsed")) {
+                        dropdown.style.position = "fixed";
+                        dropdown.style.left = "90px";
+                        dropdown.style.bottom = "80px";
+                    } else {
+                        dropdown.style.position = "fixed";
+                        dropdown.style.left = "260px";
+                        dropdown.style.bottom = "80px";
+                    }
 
-                if (sidebar.classList.contains("collapsed")) {
-                    dropdown.style.position = "fixed";
-                    dropdown.style.left = "90px";
-                    dropdown.style.bottom = "80px";
-                } else {
-                    dropdown.style.position = "fixed";
-                    dropdown.style.left = "260px";
-                    dropdown.style.bottom = "80px";
+                    dropdown.style.right = "auto";
+                    dropdown.style.zIndex = "5000";
+                };
+
+                profileInfo.addEventListener("click", toggleDropdown);
+
+                if (toggleBtn) {
+                    toggleBtn.addEventListener("click", toggleDropdown);
                 }
 
-                dropdown.style.right = "auto";
-                dropdown.style.zIndex = "5000";
-            };
-
-            profileInfo.addEventListener("click", toggleDropdown);
-
-            if (toggleBtn) {
-                toggleBtn.addEventListener("click", toggleDropdown);
-            }
-
-            document.addEventListener("click", (e) => {
-                if (!profileMenu.contains(e.target)) {
-                    profileMenu.classList.remove("open");
-                    dropdown.style.display = "none";
-                }
-            });
-        });
-    </script>
-
-
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            // === SIDEBAR SUBMENU TOGGLE ===
-            const submenuToggles = document.querySelectorAll(".submenu-toggle");
-
-            submenuToggles.forEach(toggle => {
-                toggle.addEventListener("click", (e) => {
-                    e.preventDefault();
-
-                    const parentLi = toggle.closest(".submenu");
-
-                    // Close other open submenus (optional)
-                    document.querySelectorAll(".submenu.open").forEach(menu => {
-                        if (menu !== parentLi) menu.classList.remove("open");
-                    });
-
-                    // Toggle current submenu
-                    parentLi.classList.toggle("open");
+                document.addEventListener("click", (e) => {
+                    if (!profileMenu.contains(e.target)) {
+                        profileMenu.classList.remove("open");
+                        dropdown.style.display = "none";
+                    }
                 });
-            });
+            }
         });
     </script>
 </body>
-
 </html>

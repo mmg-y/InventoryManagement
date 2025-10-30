@@ -1,5 +1,151 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
+.profile-pic-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.profile-pic-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #495057;
+    font-size: 1.1rem;
+}
+
+.profile-pic-options {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.pic-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.pic-option:hover {
+    transform: translateY(-3px);
+}
+
+.pic-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #dee2e6;
+    transition: border-color 0.2s;
+    background-color: white;
+}
+
+.pic-option:hover .pic-preview {
+    border-color: #4dabf7;
+}
+
+.pic-option.selected .pic-preview {
+    border-color: #339af0;
+    box-shadow: 0 0 0 3px rgba(51, 154, 240, 0.25);
+}
+
+.pic-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.upload-area {
+    flex-direction: column;
+    background-color: #f1f3f5;
+    color: #868e96;
+    font-size: 0.8rem;
+    text-align: center;
+    padding: 5px;
+}
+
+.upload-area i {
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+}
+
+.pic-label {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+/* Selected Preview Section */
+.selected-preview {
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.selected-preview h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    color: #495057;
+}
+
+.selected-img-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.selected-img-container img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #339af0;
+}
+
+.remove-btn {
+    background-color: #fa5252;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 auto;
+}
+
+.remove-btn:hover {
+    background-color: #e03131;
+}
+
+@media (max-width: 576px) {
+    .profile-pic-options {
+        justify-content: center;
+    }
+    
+    .pic-preview {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .selected-img-container img {
+        width: 100px;
+        height: 100px;
+    }
+}
+
 :root {
     --black: #000;
     --smokey: #100c08;

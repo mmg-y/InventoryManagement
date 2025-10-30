@@ -3,7 +3,7 @@ session_start();
 include '../config.php'; // this defines $conn (mysqli)
 
 // Only allow bodegero
-if (!isset($_SESSION['username']) || $_SESSION['type'] !== "bodegero") {
+if (!isset($_SESSION['username']) || $_SESSION['type'] !== "warehouse_man") {
     header("Location: ../index.php");
     exit;
 }

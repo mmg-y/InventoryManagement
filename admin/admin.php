@@ -102,6 +102,32 @@ if (!empty($_GET['page'])) {
     <link rel="stylesheet" href="../css/admin.css">
     <link rel="icon" href="../images/logo-teal.png" type="images/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+    #profileModal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        justify-content: center;
+        align-items: center;
+        overflow: auto;
+        z-index: 9999;
+    }
+
+    #profileModal .modal-content {
+        background: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+    }
+</style>
 </head>
 
 <body>
@@ -115,7 +141,6 @@ if (!empty($_GET['page'])) {
                     </div>
                     <div class="team-info">
                         <span class="team-name">MartIQ</span>
-                        <!-- <span class="team-plan">Smart sales, Smart Store</span> -->
                     </div>
                 </div>
                 <!-- <button class="collapse-btn" id="collapseBtn">
@@ -177,7 +202,6 @@ if (!empty($_GET['page'])) {
             </div>
         </div>
 
-        <!-- Sidebar Footer -->
         <div class="sidebar-footer" id="profileMenu">
             <div class="profile-info">
                 <img src="<?= htmlspecialchars($profile_src); ?>" alt="User" class="profile-img" />
@@ -258,13 +282,42 @@ if (!empty($_GET['page'])) {
                 <?php endif; ?>
 
                 <form action="update_profile.php" method="POST" enctype="multipart/form-data">
-                    <div class="profile-pic-wrapper">
-                        <?php
-                        $modal_pic = '../uploads/default.png';
-                        if (!empty($_SESSION['profile_pic'])) $modal_pic = '../' . ltrim($_SESSION['profile_pic'], '/');
-                        ?>
-                        <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Profile" id="profilePreview">
-                        <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
+
+                    <div class="profile-pic-section">
+                        <h3>Profile Picture</h3>
+                        <div class="profile-pic-options">
+
+                            <div class="pic-option current-pic">
+                                <div class="pic-preview">
+                                    <?php
+                                    $modal_pic = '../uploads/default.png';
+                                    if (!empty($_SESSION['profile_pic'])) $modal_pic = '../' . ltrim($_SESSION['profile_pic'], '/');
+                                    ?>
+                                    <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Current Profile" id="profilePreview">
+                                </div>
+                                <span class="pic-label">Current</span>
+                            </div>
+                            
+                            <div class="pic-option upload-pic">
+                                <div class="pic-preview upload-area" id="uploadArea">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Upload New</span>
+                                </div>
+                                <input type="file" name="profile_pic" id="profilePicInput" accept="image/*" hidden>
+                                <span class="pic-label">Upload</span>
+                            </div>
+                            
+                        </div>
+                        
+                        <div class="selected-preview">
+                            <h4>Selected Picture:</h4>
+                            <div class="selected-img-container">
+                                <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Selected Profile" id="selectedPreview">
+                            </div>
+                            <button type="button" id="removePicBtn" class="remove-btn">
+                                <i class="fa-solid fa-trash"></i> Remove Picture
+                            </button>
+                        </div>
                     </div>
 
                     <div class="input-row">
@@ -299,14 +352,13 @@ if (!empty($_GET['page'])) {
         </div>
     </main>
 
-    <!-- manage profile -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const manageProfile = document.getElementById("manageProfile");
             const profileModal = document.getElementById("profileModal");
             const closeProfile = document.getElementById("closeProfile");
 
-            if (manageProfile) {
+            if (manageProfile && profileModal) {
                 manageProfile.addEventListener("click", (e) => {
                     e.preventDefault();
                     profileModal.style.display = "flex";
@@ -314,7 +366,7 @@ if (!empty($_GET['page'])) {
                 });
             }
 
-            if (closeProfile) {
+            if (closeProfile && profileModal) {
                 closeProfile.addEventListener("click", () => {
                     profileModal.style.display = "none";
                     profileModal.setAttribute("aria-hidden", "true");
@@ -327,46 +379,74 @@ if (!empty($_GET['page'])) {
                     profileModal.setAttribute("aria-hidden", "true");
                 }
             });
-        });
-    </script>
 
-
-    <!-- profile dropdown -->
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const profileLink = document.querySelector('#dropdownMenu a[href="#profile"]');
-            const profileModal = document.getElementById('profileModal');
-            const closeProfile = document.getElementById('closeProfile');
             const profilePicInput = document.getElementById('profilePicInput');
+            const uploadArea = document.getElementById('uploadArea');
             const profilePreview = document.getElementById('profilePreview');
+            const selectedPreview = document.getElementById('selectedPreview');
+            const removePicBtn = document.getElementById('removePicBtn');
+            const defaultPicOptions = document.querySelectorAll('.default-pic .pic-preview img');
+            const picOptions = document.querySelectorAll('.pic-option');
 
-            if (profileLink && profileModal) {
-                profileLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    profileModal.style.display = 'flex';
-                    profileModal.setAttribute('aria-hidden', 'false');
+            if (uploadArea) {
+                uploadArea.addEventListener('click', () => {
+                    profilePicInput.click();
                 });
             }
 
-            if (closeProfile && profileModal) {
-                closeProfile.addEventListener('click', () => {
-                    profileModal.style.display = 'none';
-                    profileModal.setAttribute('aria-hidden', 'true');
-                });
-            }
-
-            window.addEventListener('click', (e) => {
-                if (e.target === profileModal) {
-                    profileModal.style.display = 'none';
-                    profileModal.setAttribute('aria-hidden', 'true');
-                }
-            });
-
-            if (profilePicInput && profilePreview) {
+            if (profilePicInput) {
                 profilePicInput.addEventListener('change', (e) => {
                     const file = e.target.files[0];
-                    if (file) profilePreview.src = URL.createObjectURL(file);
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const imageUrl = e.target.result;
+                            updateSelectedPicture(imageUrl);
+                            selectOption(uploadArea.closest('.pic-option'));
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 });
+            }
+
+            defaultPicOptions.forEach(img => {
+                img.addEventListener('click', () => {
+                    updateSelectedPicture(img.getAttribute('data-src'));
+                    selectOption(img.closest('.pic-option'));
+                });
+            });
+
+            const currentPicOption = document.querySelector('.current-pic');
+            if (currentPicOption) {
+                currentPicOption.addEventListener('click', () => {
+                    updateSelectedPicture(profilePreview.src);
+                    selectOption(currentPicOption);
+                });
+            }
+
+            if (removePicBtn) {
+                removePicBtn.addEventListener('click', () => {
+                    const defaultPic = '../uploads/default.png';
+                    updateSelectedPicture(defaultPic);
+                    selectOption(document.querySelector('.default-pic'));
+                    profilePicInput.value = ''; 
+                });
+            }
+
+            function updateSelectedPicture(src) {
+                if (selectedPreview) selectedPreview.src = src;
+                if (profilePreview) profilePreview.src = src;
+            }
+
+            function selectOption(optionElement) {
+
+                picOptions.forEach(opt => opt.classList.remove('selected'));
+
+                if (optionElement) optionElement.classList.add('selected');
+            }
+
+            if (currentPicOption) {
+                selectOption(currentPicOption);
             }
 
             <?php if (!empty($_SESSION['open_profile_modal'])): ?>
@@ -377,13 +457,7 @@ if (!empty($_GET['page'])) {
                 }
             <?php unset($_SESSION['open_profile_modal']);
             endif; ?>
-        });
-    </script>
 
-
-    <!-- notification -->
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
             const notifBtn = document.getElementById("notifBtn");
             const notifWrapper = document.getElementById("notifWrapper");
 
@@ -399,76 +473,48 @@ if (!empty($_GET['page'])) {
                     }
                 });
             }
-        });
-    </script>
 
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const collapseBtn = document.getElementById("collapseBtn");
-            const sidebar = document.querySelector(".sidebar");
-            const main = document.querySelector(".main");
-            const topbar = document.querySelector(".topbar");
-
-            if (collapseBtn && sidebar) {
-                collapseBtn.addEventListener("click", () => {
-                    sidebar.classList.toggle("collapsed");
-                });
-            }
-        });
-    </script>
-
-    <!-- sidebar -->
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
             const sidebar = document.querySelector(".sidebar");
             const profileMenu = document.getElementById("profileMenu");
             const toggleBtn = profileMenu?.querySelector(".profile-toggle");
             const dropdown = profileMenu?.querySelector(".profile-dropdown");
             const profileInfo = profileMenu?.querySelector(".profile-info");
 
-            if (!profileMenu || !dropdown || !profileInfo) return;
+            if (profileMenu && dropdown && profileInfo) {
+                const toggleDropdown = (e) => {
+                    e.stopPropagation();
+                    profileMenu.classList.toggle("open");
+                    const isOpen = profileMenu.classList.contains("open");
+                    dropdown.style.display = isOpen ? "block" : "none";
 
-            const toggleDropdown = (e) => {
-                e.stopPropagation();
-                profileMenu.classList.toggle("open");
-                const isOpen = profileMenu.classList.contains("open");
-                dropdown.style.display = isOpen ? "block" : "none";
+                    if (sidebar.classList.contains("collapsed")) {
+                        dropdown.style.position = "fixed";
+                        dropdown.style.left = "90px";
+                        dropdown.style.bottom = "80px";
+                    } else {
+                        dropdown.style.position = "fixed";
+                        dropdown.style.left = "260px";
+                        dropdown.style.bottom = "80px";
+                    }
 
-                if (sidebar.classList.contains("collapsed")) {
-                    dropdown.style.position = "fixed";
-                    dropdown.style.left = "90px";
-                    dropdown.style.bottom = "80px";
-                } else {
-                    dropdown.style.position = "fixed";
-                    dropdown.style.left = "260px";
-                    dropdown.style.bottom = "80px";
+                    dropdown.style.right = "auto";
+                    dropdown.style.zIndex = "5000";
+                };
+
+                profileInfo.addEventListener("click", toggleDropdown);
+
+                if (toggleBtn) {
+                    toggleBtn.addEventListener("click", toggleDropdown);
                 }
 
-                dropdown.style.right = "auto";
-                dropdown.style.zIndex = "5000";
-            };
-
-            profileInfo.addEventListener("click", toggleDropdown);
-
-            if (toggleBtn) {
-                toggleBtn.addEventListener("click", toggleDropdown);
+                document.addEventListener("click", (e) => {
+                    if (!profileMenu.contains(e.target)) {
+                        profileMenu.classList.remove("open");
+                        dropdown.style.display = "none";
+                    }
+                });
             }
 
-            document.addEventListener("click", (e) => {
-                if (!profileMenu.contains(e.target)) {
-                    profileMenu.classList.remove("open");
-                    dropdown.style.display = "none";
-                }
-            });
-        });
-    </script>
-
-
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            // === SIDEBAR SUBMENU TOGGLE ===
             const submenuToggles = document.querySelectorAll(".submenu-toggle");
 
             submenuToggles.forEach(toggle => {
@@ -477,19 +523,15 @@ if (!empty($_GET['page'])) {
 
                     const parentLi = toggle.closest(".submenu");
 
-                    // Close other open submenus (optional)
                     document.querySelectorAll(".submenu.open").forEach(menu => {
                         if (menu !== parentLi) menu.classList.remove("open");
                     });
 
-                    // Toggle current submenu
                     parentLi.classList.toggle("open");
                 });
             });
         });
     </script>
-
-
 
 </body>
 
