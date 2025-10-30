@@ -444,9 +444,9 @@ foreach ($notifications as $note) {
                             <div class="selected-img-container">
                                 <img src="<?= htmlspecialchars($modal_pic); ?>" alt="Selected Profile" id="selectedPreview">
                             </div>
-                            <button type="button" id="removePicBtn" class="remove-btn">
+                            <!-- <button type="button" id="removePicBtn" class="remove-btn">
                                 <i class="fa-solid fa-trash"></i> Remove Picture
-                            </button>
+                            </button> -->
                         </div>
                     </div>
 
