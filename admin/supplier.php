@@ -501,6 +501,10 @@ $(document).ready(function() {
             method: 'POST',
             data: {
                 supplier_id: supplierId,
+                name: $('#editName').val(),
+                contact: $('#editContact').val(),
+                email: $('#editEmail').val(),
+                supplier_type: $('#editType').val(),
                 product_ids: allSelected
             },
             traditional: true,
@@ -516,7 +520,7 @@ $(document).ready(function() {
             },
             error: function(xhr, status, error) {
                 console.error('AJAX error', status, error, xhr.responseText);
-                alert('Failed to update supplier products. Check console for details.');
+                alert('Failed to update supplier info. Check console for details.');
             }
         });
     });
