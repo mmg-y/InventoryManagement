@@ -284,7 +284,7 @@ $suppliers = $conn->query("
             <label>Add New Products</label>
             <select id="addProductsDropdown" class="product-select" multiple="multiple"></select>
 
-            <label>Products to be Added (with Default Cost)</label>
+            <label>Products to be Added</label>
             <div id="productsToAddBox" class="readonly-box">
                 <em>No new products selected.</em>
             </div>
@@ -310,6 +310,7 @@ $(document).ready(function() {
     let currentProducts = []; // products already supplied
     let productsToAdd = [];   // products chosen to add
     let allProducts = [];     // fetched from ajax/get_all_products.php
+    let currentCosts = {}; // store updated cost per product_id
 
     $('.product-select').select2({
         placeholder: "Search and select products",
@@ -375,13 +376,21 @@ $(document).ready(function() {
                 $currentBox.html('<em>No products currently supplied.</em>');
             } else {
                 data.supplier_products.forEach(p => {
-                    currentProducts.push(parseInt(p.product_id));
+                    const pid = parseInt(p.product_id);
+                    const cost = parseFloat(p.default_cost_price || 0).toFixed(2);
+                    currentProducts.push(pid);
+
                     $currentBox.append(`
-                        <div data-id="${p.product_id}">
+                        <div data-id="${pid}">
                             <span>${p.product_name}</span>
+                            <input type="number" class="existing-cost-input" value="${cost}" step="0.01" min="0" style="width:90px; margin-left:8px;">
                             <button type="button" class="removeProduct">Remove</button>
                         </div>
                     `);
+                });
+                currentCosts = {};
+                data.supplier_products.forEach(p => {
+                    currentCosts[p.product_id] = parseFloat(p.default_cost_price || 0);
                 });
             }
 
@@ -492,6 +501,12 @@ $(document).ready(function() {
         if (product) product.cost = cost;
     });
 
+    $(document).on('input', '.existing-cost-input', function() {
+        const pid = parseInt($(this).closest('div').data('id'));
+        const cost = parseFloat($(this).val()) || 0;
+        currentCosts[pid] = cost;
+    });
+
     $(document).on('click', '.removeToAdd', function() {
         const pid = $(this).closest('div').data('id');
         productsToAdd = productsToAdd.filter(id => id !== pid);
@@ -513,7 +528,7 @@ $(document).ready(function() {
         e.preventDefault();
         const supplierId = $('#editSupplierId').val();
         const allSelected = [
-            ...currentProducts.map(id => ({ id, cost: null })), // current ones may not have editable cost
+            ...currentProducts.map(id => ({ id, cost: currentCosts[id] ?? 0 })),
             ...productsToAdd.map(p => ({ id: p.id, cost: p.cost }))
         ];
 
