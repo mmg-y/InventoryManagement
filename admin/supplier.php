@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_supplier'])) {
     $contact = trim($_POST['contact']);
     $email = trim($_POST['email']);
     $supplier_type = trim($_POST['supplier_type']);
-    $product_ids = $_POST['product_ids'] ?? [];
+    $product_ids = array_map('intval', $_POST['product_ids'] ?? []);
 
     // Update supplier info
     $stmt = $conn->prepare("UPDATE supplier SET name=?, contact=?, email=?, supplier_type=?, updated_at=NOW() WHERE supplier_id=?");
@@ -45,19 +45,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_supplier'])) {
     $stmt->execute();
     $stmt->close();
 
-    // Delete old product links
-    $stmt = $conn->prepare("DELETE FROM product_suppliers WHERE supplier_id=?");
-    $stmt->bind_param("i", $supplier_id);
-    $stmt->execute();
-    $stmt->close();
+    $existing = [];
+    $res = $conn->prepare("SELECT product_id FROM product_suppliers WHERE supplier_id=?");
+    $res->bind_param("i", $supplier_id);
+    $res->execute();
+    $res->bind_result($pid);
+    while ($res->fetch()) $existing[] = $pid;
+    $res->close();
 
-    // Insert new product links
-    if (!empty($product_ids)) {
+    $to_add = array_diff($product_ids, $existing);
+    $to_remove = array_diff($existing, $product_ids);
+
+    if (!empty($to_add)) {
         $stmt = $conn->prepare("INSERT INTO product_suppliers (product_id, supplier_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
-        foreach ($product_ids as $pid) {
+        foreach ($to_add as $pid) {
             $stmt->bind_param("ii", $pid, $supplier_id);
             $stmt->execute();
         }
+        $stmt->close();
+    }
+
+    if (!empty($to_remove)) {
+        $placeholders = implode(',', array_fill(0, count($to_remove), '?'));
+        $types = str_repeat('i', count($to_remove) + 1);
+        $query = "DELETE FROM product_suppliers WHERE supplier_id=? AND product_id IN ($placeholders)";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param($types, $supplier_id, ...$to_remove);
+        $stmt->execute();
         $stmt->close();
     }
 
@@ -80,6 +94,57 @@ $suppliers = $conn->query("
 
 <link rel="stylesheet" href="../css/supplier.css">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+.readonly-box div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #eef2ff;
+    padding: 5px 10px;
+    margin: 4px 0;
+    border-radius: 5px;
+}
+.readonly-box button {
+    background: #ef4444;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+.readonly-box button:hover {
+    background: #dc2626;
+}
+
+
+
+.item-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 250px;
+}
+
+.item-pill {
+    background: #e0f2fe;
+    color: #0f172a;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+    border: 1px solid #bae6fd;
+    transition: all 0.2s ease;
+}
+
+.item-pill:hover {
+    background: #0284c7;
+    color: white;
+    border-color: #0284c7;
+}
+
+</style>
+
 
 <div class="supplier-container">
     <h1 class="page-title">Suppliers</h1>
@@ -122,12 +187,11 @@ $suppliers = $conn->query("
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Name</th>
+                    <th>Supplier</th>
                     <th>Contact</th>
                     <th>Email</th>
                     <th>Type</th>
-                    <th>Items</th>
-                    <th>Default Prices</th>
+                    <th>Items Supplied</th>
                     <th>Created</th>
                     <th>Updated</th>
                     <th>Actions</th>
@@ -137,41 +201,36 @@ $suppliers = $conn->query("
                 <?php while ($s = $suppliers->fetch_assoc()):
                     // Fetch supplier products
                     $supplier_products = [];
-                    $prod_res = $conn->query(
-                        "
-        SELECT ps.product_id, p.product_name, ps.default_cost_price
-        FROM product_suppliers ps
-        JOIN product p ON p.product_id = ps.product_id
-        WHERE ps.supplier_id = " . $s['supplier_id']
-                    );
-
+                    $prod_res = $conn->query("
+                        SELECT p.product_name
+                        FROM product_suppliers ps
+                        JOIN product p ON p.product_id = ps.product_id
+                        WHERE ps.supplier_id = {$s['supplier_id']}
+                        ORDER BY p.product_name ASC
+                    ");
                     while ($row = $prod_res->fetch_assoc()) {
-                        $supplier_products[] = [
-                            'id' => $row['product_id'],
-                            'name' => $row['product_name'],
-                            'default_cost_price' => $row['default_cost_price']
-                        ];
+                        $supplier_products[] = $row['product_name'];
                     }
 
-                    $products_json = json_encode(array_column($supplier_products, 'id')); // For modal
+                    $products_json = json_encode($supplier_products);
                 ?>
                     <tr>
                         <td><?= $s['supplier_id'] ?></td>
-                        <td><?= htmlspecialchars($s['name']) ?></td>
+                        <td><strong><?= htmlspecialchars($s['name']) ?></strong></td>
                         <td><?= htmlspecialchars($s['contact']) ?></td>
                         <td><?= htmlspecialchars($s['email']) ?></td>
                         <td><?= htmlspecialchars($s['supplier_type']) ?></td>
                         <td>
-                            <?php foreach ($supplier_products as $prod): ?>
-                                <div><?= htmlspecialchars($prod['name']) ?></div>
-                            <?php endforeach; ?>
+                            <?php if (!empty($supplier_products)): ?>
+                                <div class="item-list">
+                                    <?php foreach ($supplier_products as $prod): ?>
+                                        <span class="item-pill"><?= htmlspecialchars($prod) ?></span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <em>No items supplied yet.</em>
+                            <?php endif; ?>
                         </td>
-                        <td>
-                            <?php foreach ($supplier_products as $prod): ?>
-                                <div>₱<?= number_format($prod['default_cost_price'], 2) ?></div>
-                            <?php endforeach; ?>
-                        </td>
-
                         <td><?= $s['created_at'] ?></td>
                         <td><?= $s['updated_at'] ?></td>
                         <td>
@@ -211,14 +270,23 @@ $suppliers = $conn->query("
             <label>Supplier Type</label>
             <input type="text" name="supplier_type" id="editType" required>
 
-            <label>Select Products</label>
-            <select class="product-select" name="product_ids[]" id="editProducts" multiple="multiple" required>
-                <?php foreach ($products as $p): ?>
-                    <option value="<?= $p['product_id'] ?>"><?= htmlspecialchars($p['product_name']) ?></option>
-                <?php endforeach; ?>
-            </select>
+            <label>Currently Supplying</label>
+            <div id="currentProductsBox" class="readonly-box">
+                <em>Loading products...</em>
+            </div>
+
+            <label>Add New Products</label>
+            <select id="addProductsDropdown" class="product-select" multiple="multiple"></select>
+
+            <label>Products to be Added</label>
+            <div id="productsToAddBox" class="readonly-box">
+                <em>No new products selected.</em>
+            </div>
+
+            <input type="hidden" name="product_ids[]" id="hiddenProductIds">
+
             <div class="btn-container">
-                <button type="submit" name="update_supplier" class="save-btn">Update</button>
+                <button type="submit" name="update_supplier" class="save-btn">Save Changes</button>
             </div>
         </form>
     </div>
@@ -228,44 +296,235 @@ $suppliers = $conn->query("
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-    $(document).ready(function() {
-        $('.product-select').select2({
-            placeholder: "Search and select products",
-            allowClear: true,
-            width: '100%'
-        });
-        const $editModal = $('#editSupplierModal');
+$(document).ready(function() {
+    const $editModal = $('#editSupplierModal');
+    const $currentBox = $('#currentProductsBox');
+    const $addDropdown = $('#addProductsDropdown');
+    const $toAddBox = $('#productsToAddBox');
+    let currentProducts = []; // products already supplied
+    let productsToAdd = [];   // products chosen to add
+    let allProducts = [];     // fetched from ajax/get_all_products.php
 
-        $editModal.hide();
+    $('.product-select').select2({
+        placeholder: "Search and select products",
+        allowClear: true,
+        width: '100%'
+    });
 
-        $('.edit-btn').on('click', function() {
-            const $btn = $(this);
+    $editModal.hide();
 
-            $('#editSupplierId').val($btn.data('id'));
-            $('#editName').val($btn.data('name'));
-            $('#editContact').val($btn.data('contact'));
-            $('#editEmail').val($btn.data('email'));
-            $('#editType').val($btn.data('type'));
+    $('.edit-btn').on('click', function() {
+        const supplierId = $(this).data('id');
+        $('#editSupplierId').val(supplierId);
+        $('#editName').val($(this).data('name'));
+        $('#editContact').val($(this).data('contact'));
+        $('#editEmail').val($(this).data('email'));
+        $('#editType').val($(this).data('type'));
 
-            let products = $btn.data('products');
+        productsToAdd = [];
+        $toAddBox.html('<em>No new products selected.</em>');
+        $currentBox.html('<em>Loading products...</em>');
 
-            if (typeof products === 'string') {
-                products = JSON.parse(products);
+        loadSupplierProducts(supplierId);
+
+        $editModal.fadeIn();
+    });
+
+    function loadAllProducts() {
+        return $.getJSON('ajax/get_all_products.php', function(data) {
+            $addDropdown.empty().off().select2('destroy');
+
+            allProducts = data.products || [];
+
+            if (allProducts.length === 0) {
+                console.warn("⚠️ No products found in database.");
             }
 
-            $('#editProducts').val(products).trigger('change');
+            data.available_products.forEach(p => {
+                $addDropdown.append(new Option(p.product_name, p.product_id, false, false));
+            });
+            allProducts = allProducts.filter(p => !currentProducts.includes(parseInt(p.product_id)));
 
-            $editModal.fadeIn();
+            setTimeout(() => {
+                $addDropdown.select2({
+                    dropdownParent: $('#editSupplierModal'),
+                    placeholder: "Select products to add",
+                    allowClear: true,
+                    width: '100%'
+                });
+            }, 100);
+        }).fail(function(xhr) {
+            console.error("❌ AJAX error loading products:", xhr.status, xhr.statusText);
         });
+    }
 
-        $('#closeEditModal').on('click', function() {
-            $editModal.fadeOut();
+    function loadSupplierProducts(supplierId) {
+        $.getJSON('ajax/get_supplier_products.php', { supplier_id: supplierId }, function(data) {
+            $currentBox.empty();
+            $addDropdown.empty().off().select2('destroy');
+            currentProducts = [];
+            productsToAdd = [];
+
+            if (data.supplier_products.length === 0) {
+                $currentBox.html('<em>No products currently supplied.</em>');
+            } else {
+                data.supplier_products.forEach(p => {
+                    currentProducts.push(parseInt(p.product_id));
+                    $currentBox.append(`
+                        <div data-id="${p.product_id}">
+                            <span>${p.product_name}</span>
+                            <button type="button" class="removeProduct">Remove</button>
+                        </div>
+                    `);
+                });
+            }
+
+            $.getJSON('ajax/get_all_products.php', function(allData) {
+                allProducts = allData.products || [];
+
+                const availableProducts = allProducts.filter(p => !currentProducts.includes(parseInt(p.product_id)));
+
+                if (availableProducts.length === 0) {
+                    $addDropdown.append('<option disabled>No available products</option>');
+                } else {
+                    availableProducts.forEach(p => {
+                        $addDropdown.append(new Option(p.product_name, p.product_id, false, false));
+                    });
+                }
+
+                setTimeout(() => {
+                    $addDropdown.select2({
+                        dropdownParent: $('#editSupplierModal'),
+                        placeholder: "Select products to add",
+                        allowClear: true,
+                        width: '100%'
+                    });
+                }, 100);
+            });
+
+            updateHiddenProductIds();
         });
+    }
 
-        $editModal.on('click', function(e) {
-            if (e.target === this) {
-                $editModal.fadeOut();
+
+    $(document).on('click', '.removeProduct', function() {
+        const $row = $(this).closest('div');
+        const pid = parseInt($row.data('id'));
+        const supplierId = parseInt($('#editSupplierId').val());
+
+        if (!confirm("Remove this product from supplier?")) return;
+
+        $.ajax({
+            url: 'ajax/remove_supplier_product.php',
+            method: 'POST',
+            dataType: 'json',
+            data: {
+                supplier_id: supplierId,
+                product_id: pid
+            },
+            success: function(resp) {
+                if (resp.status === 'success') {
+                    currentProducts = currentProducts.filter(id => id !== pid);
+                    $row.remove();
+
+                    $row.fadeOut(300, function() {
+                        $(this).remove();
+                    });
+
+                    if (currentProducts.length === 0) {
+                        $currentBox.html('<em>No products currently supplied.</em>');
+                    }
+
+                    updateHiddenProductIds();
+                    console.log('✅ Product removed:', pid);
+                } else {
+                    alert('❌ ' + (resp.message || 'Failed to remove product.'));
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error:', status, error, xhr.responseText);
+                alert('Failed to delete product. Check console for details.');
             }
         });
     });
+
+    $(document).on('change', '#addProductsDropdown', function() {
+        const selected = $(this).val() || [];
+        console.log("Selected product IDs:", selected);
+
+        selected.forEach(pid => {
+            pid = parseInt(pid);
+            const productName = allProducts.find(p => parseInt(p.product_id) === pid)?.product_name || 'Unknown Product';
+
+            if (!currentProducts.includes(pid) && !productsToAdd.includes(pid)) {
+                productsToAdd.push(pid);
+                if ($toAddBox.find('em').length) $toAddBox.empty();
+                $toAddBox.append(`
+                    <div data-id="${pid}">
+                        <span>${productName}</span>
+                        <button type="button" class="removeToAdd">Remove</button>
+                    </div>
+                `);
+            }
+        });
+
+        $(this).val(null).trigger('change'); // clear select2 selection
+        updateHiddenProductIds();
+    });
+
+    $(document).on('click', '.removeToAdd', function() {
+        const pid = $(this).closest('div').data('id');
+        productsToAdd = productsToAdd.filter(id => id !== pid);
+        $(this).closest('div').remove();
+
+        if (productsToAdd.length === 0) {
+            $toAddBox.html('<em>No new products selected.</em>');
+        }
+
+        updateHiddenProductIds();
+    });
+
+    function updateHiddenProductIds() {
+        const allSelected = [...currentProducts, ...productsToAdd];
+        $('#hiddenProductIds').val(allSelected.join(','));
+    }
+
+    $('#editSupplierForm').on('submit', function(e) {
+        e.preventDefault();
+        const supplierId = $('#editSupplierId').val();
+        const allSelected = [...currentProducts, ...productsToAdd].map(v => parseInt(v)).filter(Boolean);
+
+        console.log("Submitting update for supplier:", supplierId, "product_ids:", allSelected);
+
+        $.ajax({
+            url: 'ajax/update_supplier_products.php',
+            method: 'POST',
+            data: {
+                supplier_id: supplierId,
+                product_ids: allSelected
+            },
+            traditional: true,
+            dataType: 'json',
+            success: function(resp) {
+                console.log('update response', resp);
+                if (resp.status === 'success') {
+                    alert(resp.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + (resp.message || 'Unknown error'));
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error', status, error, xhr.responseText);
+                alert('Failed to update supplier products. Check console for details.');
+            }
+        });
+    });
+
+
+    $('#closeEditModal').on('click', () => $editModal.fadeOut());
+    $editModal.on('click', function(e) {
+        if (e.target === this) $editModal.fadeOut();
+    });
+});
 </script>
