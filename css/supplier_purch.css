@@ -33,6 +33,72 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
+#edit_status:disabled {
+  background-color: #f3f3f3;
+  color: #555;
+  cursor: not-allowed;
+}
+
+#edit_remarks[readonly] {
+  background-color: #f8f8f8;
+}
+
+#editModal.cancelled .modal-content {
+  border-left: 5px solid #e74c3c;
+  background-color: #fff5f5;
+}
+
+.modal-content textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--silver);
+    border-radius: 6px;
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    font-family: "Poppins", sans-serif;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background-color: var(--white);
+}
+
+.modal-content textarea:focus {
+    border-color: var(--smokey);
+    box-shadow: 0 0 5px rgba(16, 44, 87, 0.3);
+}
+
+#cancelDetailsGroup label {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--darkGray);
+}
+
+#cancelDetails {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--silver);
+  border-radius: 6px;
+  outline: none;
+  background-color: var(--white);
+  font-family: "Poppins", sans-serif;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  resize: none;
+  box-sizing: border-box;
+  height: 45px;
+}
+
+#cancelDetails:focus {
+  border-color: var(--smokey);
+  box-shadow: 0 0 5px rgba(16, 44, 87, 0.3);
+}
+
+#cancelDetails[readonly] {
+  background-color: #f8f8f8;
+  color: #555;
+  cursor: not-allowed;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
