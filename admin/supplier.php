@@ -199,17 +199,20 @@ $suppliers = $conn->query("
             </thead>
             <tbody>
                 <?php while ($s = $suppliers->fetch_assoc()):
-                    // Fetch supplier products
+                    // Fetch supplier products with default_cost
                     $supplier_products = [];
                     $prod_res = $conn->query("
-                        SELECT p.product_name
+                        SELECT p.product_name, ps.default_cost_price
                         FROM product_suppliers ps
                         JOIN product p ON p.product_id = ps.product_id
                         WHERE ps.supplier_id = {$s['supplier_id']}
                         ORDER BY p.product_name ASC
                     ");
                     while ($row = $prod_res->fetch_assoc()) {
-                        $supplier_products[] = $row['product_name'];
+                        $supplier_products[] = [
+                            'product_name' => $row['product_name'],
+                            'default_cost' => $row['default_cost_price']
+                        ];
                     }
 
                     $products_json = json_encode($supplier_products);
@@ -224,7 +227,10 @@ $suppliers = $conn->query("
                             <?php if (!empty($supplier_products)): ?>
                                 <div class="item-list">
                                     <?php foreach ($supplier_products as $prod): ?>
-                                        <span class="item-pill"><?= htmlspecialchars($prod) ?></span>
+                                        <span class="item-pill">
+                                            <?= htmlspecialchars($prod['product_name']) ?>
+                                            (₱<?= number_format($prod['default_cost'], 2) ?>)
+                                        </span>
                                     <?php endforeach; ?>
                                 </div>
                             <?php else: ?>
@@ -278,7 +284,7 @@ $suppliers = $conn->query("
             <label>Add New Products</label>
             <select id="addProductsDropdown" class="product-select" multiple="multiple"></select>
 
-            <label>Products to be Added</label>
+            <label>Products to be Added (with Default Cost)</label>
             <div id="productsToAddBox" class="readonly-box">
                 <em>No new products selected.</em>
             </div>
@@ -456,12 +462,19 @@ $(document).ready(function() {
             pid = parseInt(pid);
             const productName = allProducts.find(p => parseInt(p.product_id) === pid)?.product_name || 'Unknown Product';
 
-            if (!currentProducts.includes(pid) && !productsToAdd.includes(pid)) {
-                productsToAdd.push(pid);
+            if (!currentProducts.includes(pid) && !productsToAdd.some(p => p.id === pid)) {
                 if ($toAddBox.find('em').length) $toAddBox.empty();
+
+                const newItem = {
+                    id: pid,
+                    cost: 0.00
+                };
+                productsToAdd.push(newItem);
+
                 $toAddBox.append(`
                     <div data-id="${pid}">
                         <span>${productName}</span>
+                        <input type="number" class="cost-input" placeholder="Cost (₱)" step="0.01" min="0" style="width:90px;">
                         <button type="button" class="removeToAdd">Remove</button>
                     </div>
                 `);
@@ -470,6 +483,13 @@ $(document).ready(function() {
 
         $(this).val(null).trigger('change'); // clear select2 selection
         updateHiddenProductIds();
+    });
+
+    $(document).on('input', '.cost-input', function() {
+        const pid = parseInt($(this).closest('div').data('id'));
+        const cost = parseFloat($(this).val()) || 0;
+        const product = productsToAdd.find(p => p.id === pid);
+        if (product) product.cost = cost;
     });
 
     $(document).on('click', '.removeToAdd', function() {
@@ -492,7 +512,10 @@ $(document).ready(function() {
     $('#editSupplierForm').on('submit', function(e) {
         e.preventDefault();
         const supplierId = $('#editSupplierId').val();
-        const allSelected = [...currentProducts, ...productsToAdd].map(v => parseInt(v)).filter(Boolean);
+        const allSelected = [
+            ...currentProducts.map(id => ({ id, cost: null })), // current ones may not have editable cost
+            ...productsToAdd.map(p => ({ id: p.id, cost: p.cost }))
+        ];
 
         console.log("Submitting update for supplier:", supplierId, "product_ids:", allSelected);
 
@@ -507,7 +530,16 @@ $(document).ready(function() {
                 supplier_type: $('#editType').val(),
                 product_ids: allSelected
             },
-            traditional: true,
+            traditional: false,
+            contentType: "application/json",
+            data: JSON.stringify({
+                supplier_id: supplierId,
+                name: $('#editName').val(),
+                contact: $('#editContact').val(),
+                email: $('#editEmail').val(),
+                supplier_type: $('#editType').val(),
+                product_ids: allSelected
+            }),
             dataType: 'json',
             success: function(resp) {
                 console.log('update response', resp);
