@@ -39,26 +39,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
     $quantity  = (int)($_POST['total_quantity'] ?? 0);
     $threshold = (int)($_POST['threshold'] ?? 0);
 
+    // Handle file upload
+    $picturePath = '';
+    if (isset($_FILES['product_picture']) && $_FILES['product_picture']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = '../uploads/products/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        
+        $fileExtension = pathinfo($_FILES['product_picture']['name'], PATHINFO_EXTENSION);
+        $fileName = uniqid() . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $name) . '.' . $fileExtension;
+        $picturePath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['product_picture']['tmp_name'], $picturePath)) {
+            $picturePath = 'uploads/products/' . $fileName;
+        } else {
+            $picturePath = '';
+        }
+    }
+
     // Determine status automatically
     $status_id = getStatusId($threshold, $conn);
 
     // Insert product
     $sql = $conn->prepare("
         INSERT INTO product 
-        (product_code, product_name, category, retail_id, total_quantity, reserved_qty, threshold_id, threshold, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, 0, ?, ?, NOW(), NOW())
+        (product_code, product_name, product_picture, category, retail_id, total_quantity, reserved_qty, threshold_id, threshold, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NOW(), NOW())
     ");
-    $sql->bind_param("ssiiiii", $code, $name, $category, $retail, $quantity, $status_id, $threshold);
+    $sql->bind_param("sssiiiii", $code, $name, $picturePath, $category, $retail, $quantity, $status_id, $threshold);
     $sql->execute();
 
     echo "<script>window.location.href='budegero.php?page=product_inventory&msg=added';</script>";
     exit;
 }
 
-
 // Delete Product
 if (isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
+    
+    // Get product picture path before deleting to remove the file
+    $product = $conn->query("SELECT product_picture FROM product WHERE product_id = $id")->fetch_assoc();
+    if ($product && !empty($product['product_picture']) && file_exists('../' . $product['product_picture'])) {
+        unlink('../' . $product['product_picture']);
+    }
+    
     $conn->query("DELETE FROM product WHERE product_id = $id");
     echo "<script>window.location.href='budegero.php?page=product_inventory&msg=deleted';</script>";
     exit;
@@ -69,27 +94,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_product'])) {
     $id         = (int)$_POST['product_id'];
     $code       = trim($_POST['product_code']);
     $name       = trim($_POST['product_name']);
-    $categoryId = (int)($_POST['category_id'] ?? 0);
+    $categoryId = (int)($_POST['category'] ?? 0);
     $retailId   = (int)($_POST['retail_id'] ?? 0);
     $quantity   = (int)($_POST['quantity'] ?? 0);
     $threshold  = (int)($_POST['threshold'] ?? 0);
 
+    // Handle file upload
+    $picturePath = '';
+    if (isset($_FILES['product_picture']) && $_FILES['product_picture']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = '../uploads/products/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        
+        // Delete old picture if exists
+        $oldProduct = $conn->query("SELECT product_picture FROM product WHERE product_id = $id")->fetch_assoc();
+        if ($oldProduct && !empty($oldProduct['product_picture']) && file_exists('../' . $oldProduct['product_picture'])) {
+            unlink('../' . $oldProduct['product_picture']);
+        }
+        
+        $fileExtension = pathinfo($_FILES['product_picture']['name'], PATHINFO_EXTENSION);
+        $fileName = uniqid() . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $name) . '.' . $fileExtension;
+        $picturePath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['product_picture']['tmp_name'], $picturePath)) {
+            $picturePath = 'uploads/products/' . $fileName;
+            
+            // Update with new picture
+            $sql = $conn->prepare("
+                UPDATE product 
+                SET product_code=?, product_name=?, product_picture=?, category=?, retail_id=?, total_quantity=?, threshold_id=?, threshold=?, updated_at=NOW()
+                WHERE product_id=?
+            ");
+            $sql->bind_param("sssiiiiii", $code, $name, $picturePath, $categoryId, $retailId, $quantity, $status_id, $threshold, $id);
+        } else {
+            // Update without changing picture
+            $sql = $conn->prepare("
+                UPDATE product 
+                SET product_code=?, product_name=?, category=?, retail_id=?, total_quantity=?, threshold_id=?, threshold=?, updated_at=NOW()
+                WHERE product_id=?
+            ");
+            $sql->bind_param("ssiiiiii", $code, $name, $categoryId, $retailId, $quantity, $status_id, $threshold, $id);
+        }
+    } else {
+        // Update without changing picture
+        $sql = $conn->prepare("
+            UPDATE product 
+            SET product_code=?, product_name=?, category=?, retail_id=?, total_quantity=?, threshold_id=?, threshold=?, updated_at=NOW()
+            WHERE product_id=?
+        ");
+        $sql->bind_param("ssiiiiii", $code, $name, $categoryId, $retailId, $quantity, $status_id, $threshold, $id);
+    }
+
     // Determine status automatically
     $status_id = getStatusId($threshold, $conn);
 
-    // Update product
-    $sql = $conn->prepare("
-        UPDATE product 
-        SET product_code=?, product_name=?, category=?, retail_id=?, total_quantity=?, threshold_id=?, threshold=?, updated_at=NOW()
-        WHERE product_id=?
-    ");
-    $sql->bind_param("ssiiiiii", $code, $name, $categoryId, $retailId, $quantity, $status_id, $threshold, $id);
     $sql->execute();
 
     echo "<script>window.location.href='budegero.php?page=product_inventory&msg=updated';</script>";
     exit;
 }
-
 
 // Pagination & Filters
 $limit = 10;
@@ -133,8 +197,6 @@ $result = $conn->query("
     LIMIT $start, $limit
 ");
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -188,6 +250,7 @@ $result = $conn->query("
                         'product_id' => 'ID',
                         'product_code' => 'Code',
                         'product_name' => 'Name',
+                        'product_picture' => 'Picture',
                         'category' => 'Category',
                         'total_quantity' => 'Total Quantity',
                         'reserved_qty' => 'Reserved',
@@ -196,6 +259,10 @@ $result = $conn->query("
                         'retail_id' => 'Retail Type'
                     ];
                     foreach ($columns as $col => $label):
+                        if ($col === 'product_picture') {
+                            echo "<th>$label</th>";
+                            continue;
+                        }
                         $indicator = ($sort == $col) ? ($order === 'ASC' ? '▲' : '▼') : '';
                         $newOrder = ($sort == $col && $order === 'ASC') ? 'DESC' : 'ASC';
                         echo "<th><a href='?page=product_inventory&sort=$col&order=$newOrder&search=" . urlencode($search) . "&category_filter=$filter_category'>$label $indicator</a></th>";
@@ -210,6 +277,15 @@ $result = $conn->query("
                             <td><?= $row['product_id'] ?></td>
                             <td><?= $row['product_code'] ?></td>
                             <td><?= htmlspecialchars($row['product_name']) ?></td>
+                            <td class="product-picture-cell">
+                                <?php if (!empty($row['product_picture'])): ?>
+                                    <img src="../<?= htmlspecialchars($row['product_picture']) ?>" 
+                                         alt="<?= htmlspecialchars($row['product_name']) ?>" 
+                                         class="product-picture">
+                                <?php else: ?>
+                                    <div class="no-image">No Image</div>
+                                <?php endif; ?>
+                            </td>
                             <td><?= htmlspecialchars($row['category_name']) ?></td>
                             <td><?= $row['total_quantity'] ?></td>
                             <td><?= $row['reserved_qty'] ?></td>
@@ -227,7 +303,8 @@ $result = $conn->query("
                                     data-retail="<?= $row['retail_id'] ?>"
                                     data-quantity="<?= $row['total_quantity'] ?>"
                                     data-threshold="<?= $row['threshold'] ?>"
-                                    data-status="<?= $row['threshold_id'] ?>">
+                                    data-status="<?= $row['threshold_id'] ?>"
+                                    data-picture="<?= !empty($row['product_picture']) ? '../' . htmlspecialchars($row['product_picture']) : '' ?>">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
                                 <a href="?page=product_inventory&delete=<?= $row['product_id'] ?>" onclick="return confirm('Delete this product?')" class="delete-btn"><i class="fa-solid fa-trash"></i></a>
@@ -236,7 +313,7 @@ $result = $conn->query("
                     <?php endwhile;
                 else: ?>
                     <tr>
-                        <td colspan="10">No products found.</td>
+                        <td colspan="11">No products found.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -248,7 +325,6 @@ $result = $conn->query("
             <a href="?page=product_inventory&page_num=<?= $i ?>&sort=<?= $sort ?>&order=<?= $order ?>&search=<?= urlencode($search) ?>" class="<?= ($i == $page ? 'active' : '') ?>"><?= $i ?></a>
         <?php endfor; ?>
     </div>
-
 
     <!-- Add Product Modal -->
     <div id="addModal" class="modal">
@@ -319,7 +395,7 @@ $result = $conn->query("
         <div class="modal-content">
             <span class="close" id="closeEdit">&times;</span>
             <h2>Edit Product</h2>
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="update_product" value="1">
                 <input type="hidden" name="product_id" id="edit_id">
 
@@ -331,6 +407,14 @@ $result = $conn->query("
                 <div class="input-group">
                     <label>Product Name</label>
                     <input type="text" name="product_name" id="edit_name" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Product Picture</label>
+                    <input type="file" name="product_picture" accept="image/*" id="edit_picture_input">
+                    <img id="edit_picture_preview" src="" alt="Preview"
+                        style="width:80px; height:80px; border-radius:6px; object-fit:cover; margin-top:10px; border:1px solid #ccc;">
+                    <div style="font-size:12px; color:#666; margin-top:5px;">Leave empty to keep current picture</div>
                 </div>
 
                 <div class="input-row">
@@ -366,8 +450,6 @@ $result = $conn->query("
                         <input type="number" name="threshold" id="edit_threshold" required>
                     </div>
                 </div>
-
-                <!-- Status is auto-calculated; no manual select -->
 
                 <button type="submit" class="save-btn">Save Changes</button>
             </form>
@@ -408,6 +490,16 @@ $result = $conn->query("
                 document.getElementById("edit_retail").value = btn.dataset.retail;
                 document.getElementById("edit_quantity").value = btn.dataset.quantity;
                 document.getElementById("edit_threshold").value = btn.dataset.threshold;
+                
+                // Set picture preview
+                const editPreview = document.getElementById("edit_picture_preview");
+                if (btn.dataset.picture) {
+                    editPreview.src = btn.dataset.picture;
+                    editPreview.style.display = "block";
+                } else {
+                    editPreview.src = "";
+                    editPreview.style.display = "none";
+                }
 
                 // Open modal
                 editModal.style.display = "flex";
@@ -432,8 +524,23 @@ $result = $conn->query("
                 addPicturePreview.style.display = "none";
             }
         });
-    </script>
 
+        // Edit modal picture preview
+        const editPictureInput = document.getElementById("edit_picture_input");
+        const editPicturePreview = document.getElementById("edit_picture_preview");
+
+        editPictureInput.addEventListener("change", function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    editPicturePreview.src = e.target.result;
+                    editPicturePreview.style.display = "block";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
 
 </body>
 
