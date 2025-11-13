@@ -4,6 +4,5 @@
     defined('INC_PATH') ? null : define('INC_PATH', SITE_ROOT . DS . 'api_files\includes');
     defined('CORE_PATH') ? null : define('CORE_PATH', SITE_ROOT . DS . 'api_files\core');
 
-    //Load the config file first
     require_once(INC_PATH . DS . 'config.php');
     
