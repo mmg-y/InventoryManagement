@@ -864,7 +864,6 @@
 
                 $this->conn->begin_transaction();
 
-                // Get cart item and product info
                 $querySelect = "
                     SELECT 
                         ci.cart_items_id,
@@ -908,7 +907,6 @@
                 $newQty = $oldQty;
                 $qtyDiff = 0;
 
-                // 🟡 STOCK VALIDATION
                 if ($action === 'increment' && ($totalQty <= 0 || $remainingQty <= 0)) {
                     $this->conn->rollback();
                     return [[
@@ -967,7 +965,6 @@
                     $stmtDelete->execute();
                 }
 
-                // ✅ STOCK ADJUSTMENT
                 if ($qtyDiff !== 0) {
                     $queryUpdateProduct = "
                         UPDATE product
@@ -1003,7 +1000,6 @@
 
                 $this->conn->commit();
 
-                // ✅ Always return as array of results
                 return [[
                     "cartItemId" => $cart_items_id,
                     "productId" => $productId,
@@ -1022,7 +1018,6 @@
                     $this->conn->rollback();
                 }
 
-                // ✅ Return error as array (to keep structure consistent)
                 return [[
                     "status" => "error",
                     "message" => $e->getMessage(),
