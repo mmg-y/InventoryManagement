@@ -216,8 +216,8 @@ $columns = [
                     $picture = $p['product_picture'] ? htmlspecialchars(basename($p['product_picture'])) : '';
                 ?>
                     <div class="product-card" data-category="<?= $p['category'] ?>">
-                        <?php if ($picture && file_exists("../images/$picture")): ?>
-                            <img src="../images/<?= $picture ?>" alt="<?= htmlspecialchars($p['product_name']) ?>">
+                        <?php if ($picture && file_exists("../uploads/products/$picture")): ?>
+                            <img src="../uploads/products/<?= $picture ?>" alt="<?= htmlspecialchars($p['product_name']) ?>">
                         <?php else: ?>
                             <div class="no-image">No Image</div>
                         <?php endif; ?>

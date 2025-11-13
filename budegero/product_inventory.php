@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_product'])) {
     $id         = (int)$_POST['product_id'];
     $code       = trim($_POST['product_code']);
     $name       = trim($_POST['product_name']);
-    $categoryId = (int)($_POST['category'] ?? 0);
+    $categoryId = (int)($_POST['category_id'] ?? 0);
     $retailId   = (int)($_POST['retail_id'] ?? 0);
     $quantity   = (int)($_POST['quantity'] ?? 0);
     $threshold  = (int)($_POST['threshold'] ?? 0);
