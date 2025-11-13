@@ -1,7 +1,6 @@
 <?php
 include '../config.php';
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['get_suppliers'])) {
     $product_id = $_GET['product_id'];
     
@@ -32,10 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['get_suppliers'])) {
     echo json_encode($supplier_list);
     exit;
 }
-
-
-
-
 
 function generateBatchNumber()
 {
@@ -69,8 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_purchase'])) {
         exit;
     }
 }
-
-
 
 /* ------------------------------
    UPDATE PURCHASE
@@ -264,12 +257,12 @@ $result = $conn->query("
             <div class="input-row">
                 <div class="input-group">
                     <label>Cost Price (₱)</label>
-                    <input type="number" step="0.01" id="costPrice" name="cost_price" readonly>
+                    <input type="number" step="0.01" id="costPrice" name="cost_price" required placeholder="Enter cost price">
                 </div>
 
                 <div class="input-group">
                     <label>Batch Quantity</label>
-                    <input type="number" name="qty" id="batchQty" required min="1" oninput="calculateTotal()">
+                    <input type="number" name="qty" id="batchQty" required min="1" placeholder="Enter quantity">
                 </div>
             </div>
 
@@ -350,8 +343,6 @@ $result = $conn->query("
     closeAdd.onclick = () => addModal.style.display = "none";
     closeEdit.onclick = () => editModal.style.display = "none";
 
-
-
     productSelect.addEventListener('change', function() {
         const productId = this.value;
         
@@ -395,6 +386,12 @@ $result = $conn->query("
         }
     });
 
+    // Enable manual cost price input
+    costPriceInput.addEventListener('input', calculateTotal);
+    
+    // Enable quantity input for total calculation
+    batchQtyInput.addEventListener('input', calculateTotal);
+
     function calculateTotal() {
         const costPrice = parseFloat(costPriceInput.value) || 0;
         const quantity = parseInt(batchQtyInput.value) || 0;
@@ -402,8 +399,6 @@ $result = $conn->query("
         
         totalPriceInput.value = `₱${total.toFixed(2)}`;
     }
-
-    batchQtyInput.addEventListener('input', calculateTotal);
 
     document.querySelectorAll(".edit-btn").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -492,8 +487,6 @@ $result = $conn->query("
 
             statusSelect.innerHTML = optionsHTML;
 
-            
-
             if (status === "cancelled") {
                 cancelGroup.style.display = "block";
                 cancelInput.required = false;
@@ -520,9 +513,6 @@ $result = $conn->query("
             if (opt) opt.selected = true;
 
             const originalStatus = status;
-
-
-
 
             statusSelect.addEventListener("change", () => {
                 saveBtn.disabled = (statusSelect.value === originalStatus);
@@ -553,7 +543,6 @@ $result = $conn->query("
         costPriceInput.value = '';
         totalPriceInput.value = '';
     });
-
 
     document.getElementById("purchaseForm").addEventListener("submit", e => {
         e.preventDefault();
@@ -624,5 +613,4 @@ $result = $conn->query("
         this.style.height = this.scrollHeight + "px";
     });
     }
-
 </script>
