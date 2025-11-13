@@ -144,9 +144,9 @@ $suppliers = $conn->query("
 }
 
 .modal-content-supply {
-    max-height: 85vh;      /* limit modal height */
-    overflow-y: auto;      /* enable vertical scroll */
-    padding-right: 10px;   /* avoid scrollbar overlap */
+    max-height: 85vh;     
+    overflow-y: auto;      
+    padding-right: 10px;   
 }
 
 </style>
