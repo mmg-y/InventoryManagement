@@ -9,6 +9,9 @@ if ($supplier_id <= 0) {
     exit;
 }
 
+$supplier_products = [];
+$available_products = [];
+
 $stmt = $conn->prepare("
     SELECT 
         ps.product_id, 

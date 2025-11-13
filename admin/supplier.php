@@ -143,6 +143,12 @@ $suppliers = $conn->query("
     border-color: #0284c7;
 }
 
+.modal-content-supply {
+    max-height: 85vh;      /* limit modal height */
+    overflow-y: auto;      /* enable vertical scroll */
+    padding-right: 10px;   /* avoid scrollbar overlap */
+}
+
 </style>
 
 
